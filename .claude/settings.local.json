@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm -rf faraj-scaffold)",
+      "Bash(npx --yes create-next-app@latest faraj-scaffold --ts --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --use-npm --skip-install --yes)",
+      "Bash(SCAF=\"/private/tmp/claude-501/-Users-air-Faraj-Trading-Limited-system/212ba45e-1f34-4401-8d07-f1eaa8223604/scratchpad/faraj-scaffold\"; rm -rf \"$SCAF/.git\"; ls -la \"$SCAF\"; echo \"--- package.json ---\"; cat \"$SCAF/package.json\")",
+      "Bash(rm -f /private/tmp/claude-501/-Users-air-Faraj-Trading-Limited-system/212ba45e-1f34-4401-8d07-f1eaa8223604/scratchpad/faraj-scaffold/CLAUDE.md /private/tmp/claude-501/-Users-air-Faraj-Trading-Limited-system/212ba45e-1f34-4401-8d07-f1eaa8223604/scratchpad/faraj-scaffold/AGENTS.md /private/tmp/claude-501/-Users-air-Faraj-Trading-Limited-system/212ba45e-1f34-4401-8d07-f1eaa8223604/scratchpad/faraj-scaffold/README.md)",
+      "Bash(cp -R /private/tmp/claude-501/-Users-air-Faraj-Trading-Limited-system/212ba45e-1f34-4401-8d07-f1eaa8223604/scratchpad/faraj-scaffold/. '/Users/air/Faraj Trading Limited system/')",
+      "Bash(sed -i '' 's/\"name\": \"faraj-scaffold\"/\"name\": \"faraj-os\"/' package.json)",
+      "Bash(npm install *)",
+      "Bash(npx prisma *)",
+      "Bash(ls prisma/migrations/)",
+      "Bash(ls -la prisma/dev.db)",
+      "Bash(npm run *)",
+      "Bash(npx tsc *)",
+      "Bash(npx tsx *)",
+      "Bash(grep -v \"^$\")",
+      "Bash(git add *)",
+      "Bash(git -c 'user.name=Faraj OS' -c user.email=noreply@anthropic.com commit -q -m 'Build full-stack Faraj OS application *)"
+    ]
+  }
+}

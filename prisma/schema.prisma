@@ -1,0 +1,185 @@
+// Faraj OS — data model
+// SQLite: the whole database is a single file (prisma/dev.db) that doubles as the backup unit.
+// Money is stored as Float. Currency is a String: "CDF" or "USD". No auto-conversion is
+// persisted — CDF and USD are always kept separate; the FX rate (a Setting) is used only
+// for combined display totals.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---- Auth (admin-only today; structured so branch logins can be added later) ----
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         String    @default("admin") // admin | manager (future)
+  branchId     String?   // for future branch logins
+  branch       Branch?   @relation(fields: [branchId], references: [id])
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  sessions     Session[]
+  auditLogs    AuditLog[]
+}
+
+model Session {
+  token     String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+// ---- Organisation ----
+model Branch {
+  id        String   @id @default(cuid())
+  name      String
+  manager   String   @default("")
+  color     String   @default("#0E7C6B")
+  type      String   @default("branch") // branch | warehouse
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  users        User[]
+  prices       BranchPrice[]
+  reports      DailyReport[]
+  receipts     StockReceipt[]
+  valuations   InventoryValuation[]
+  movements    StockMovement[]
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  products Product[]
+}
+
+model Product {
+  id         String   @id @default(cuid())
+  name       String
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+  baseCost   Float     @default(0)
+  currency   String    @default("CDF") // currency of the base cost
+  unit       String    @default("Unit")
+  barcode    String?
+  status     String    @default("Active") // Active | Inactive | Low
+  createdAt  DateTime  @default(now())
+
+  prices    BranchPrice[]
+  receipts  StockReceipt[]
+  movements StockMovement[]
+}
+
+// Each branch sets its own selling price per product
+model BranchPrice {
+  id           String  @id @default(cuid())
+  branchId     String
+  branch       Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sellingPrice Float
+  currency     String  @default("CDF")
+
+  @@unique([branchId, productId])
+}
+
+// ---- Daily reports (the WhatsApp replacement) ----
+model DailyReport {
+  id        String   @id @default(cuid())
+  branchId  String
+  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  date      DateTime
+  cashCdf   Float    @default(0)
+  cashUsd   Float    @default(0)
+  status    String   @default("pending") // pending | approved
+  locked    Boolean  @default(false)
+  source    String   @default("WhatsApp")
+  note      String   @default("")
+  createdAt DateTime @default(now())
+  approvedAt DateTime?
+
+  receipts StockReceipt[]
+  expenses Expense[]
+
+  @@unique([branchId, date])
+}
+
+model StockReceipt {
+  id        String   @id @default(cuid())
+  reportId  String?
+  report    DailyReport? @relation(fields: [reportId], references: [id], onDelete: SetNull)
+  branchId  String
+  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Float
+  supplier  String   @default("")
+  note      String   @default("")
+  date      DateTime @default(now())
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  reportId    String
+  report      DailyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  description String
+  amount      Float
+  currency    String   @default("CDF")
+  receiptUrl  String?
+}
+
+// ---- Inventory valuations entered every Friday (weekly) and month-end (monthly) ----
+model InventoryValuation {
+  id          String   @id @default(cuid())
+  branchId    String?
+  branch      Branch?  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  periodType  String   // weekly | monthly
+  periodEnding DateTime
+  valueCdf    Float    @default(0)
+  valueUsd    Float    @default(0)
+  // month-end extras
+  cashCdf         Float?  // current cash available
+  cashUsd         Float?
+  warehouseValue  Float?
+  branchValue     Float?
+  remarks     String   @default("")
+  createdAt   DateTime @default(now())
+}
+
+model StockMovement {
+  id        String   @id @default(cuid())
+  branchId  String
+  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  type      String   // receipt | transfer | sale | adjustment
+  quantity  Float
+  fromName  String   @default("")
+  toName    String   @default("")
+  note      String   @default("")
+  date      DateTime @default(now())
+}
+
+// ---- System ----
+model Setting {
+  key   String @id
+  value String
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  entity    String   @default("")
+  detail    String   @default("")
+  createdAt DateTime @default(now())
+}
