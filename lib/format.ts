@@ -26,8 +26,26 @@ export function fmtDate(d: Date | string): string {
   return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+// Local calendar-date components, not UTC — a Date built as local midnight (as report dates
+// are) would otherwise shift a day when the server's timezone isn't UTC (toISOString does).
 export function fmtDateInput(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+export function fmtTime(d: Date | string): string {
+  const date = typeof d === "string" ? new Date(d) : d;
+  return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+}
+
+// Derived, display-only report number — not stored, just a readable label built from the
+// branch's initials (numeric suffixes like "Luilu 1"/"Luilu 2" survive as "L1"/"L2") + date.
+export function reportNumber(branchName: string, date: Date): string {
+  const code = branchName.trim().split(/\s+/).map((w) => w[0]).join("").toUpperCase() || "BR";
+  const d = fmtDateInput(typeof date === "string" ? new Date(date) : date).replace(/-/g, "");
+  return `RPT-${code}-${d}`;
 }
 
 export function timeAgo(d: Date | string): string {
@@ -40,9 +58,4 @@ export function timeAgo(d: Date | string): string {
   if (h < 24) return `${h} hour${h > 1 ? "s" : ""} ago`;
   const days = Math.floor(h / 24);
   return `${days} day${days > 1 ? "s" : ""} ago`;
-}
-
-// combined estimate using the admin-set FX rate (display only, never persisted)
-export function combinedCdf(cdf: number, usd: number, fx: number): number {
-  return cdf + usd * fx;
 }

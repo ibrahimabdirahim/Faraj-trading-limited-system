@@ -2,6 +2,7 @@ import { prisma } from "./db";
 
 export type AppSettings = {
   companyName: string;
+  companyLogo: string; // data: URI, empty if not set
   fxRate: number; // 1 USD = fxRate CDF
   primaryCurrency: "CDF" | "USD";
   rounding: string;
@@ -9,6 +10,7 @@ export type AppSettings = {
 
 const DEFAULTS: AppSettings = {
   companyName: "Faraj Trading Limited",
+  companyLogo: "",
   fxRate: 2850,
   primaryCurrency: "CDF",
   rounding: "100",
@@ -19,6 +21,7 @@ export async function getSettings(): Promise<AppSettings> {
   const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
   return {
     companyName: map.companyName ?? DEFAULTS.companyName,
+    companyLogo: map.companyLogo ?? DEFAULTS.companyLogo,
     fxRate: map.fxRate ? Number(map.fxRate) : DEFAULTS.fxRate,
     primaryCurrency: (map.primaryCurrency as "CDF" | "USD") ?? DEFAULTS.primaryCurrency,
     rounding: map.rounding ?? DEFAULTS.rounding,

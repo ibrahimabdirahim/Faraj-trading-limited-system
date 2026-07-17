@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/db";
 import { getBranchMetrics } from "@/lib/metrics";
 import { compact, fmt, timeAgo } from "@/lib/format";
-import Icon from "@/components/Icon";
-import ToastButton from "@/components/ToastButton";
-import NewReportButton from "@/components/NewReportButton";
+import Icon from "@/components/shared/Icon";
+import ToastButton from "@/components/shared/ToastButton";
+import NewReportButton from "@/components/daily-reports/NewReportButton";
 
 export const dynamic = "force-dynamic";
 

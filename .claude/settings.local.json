@@ -16,7 +16,10 @@
       "Bash(npx tsx *)",
       "Bash(grep -v \"^$\")",
       "Bash(git add *)",
-      "Bash(git -c 'user.name=Faraj OS' -c user.email=noreply@anthropic.com commit -q -m 'Build full-stack Faraj OS application *)"
+      "Bash(git -c 'user.name=Faraj OS' -c user.email=noreply@anthropic.com commit -q -m 'Build full-stack Faraj OS application *)",
+      "Bash(lsof -nP -iTCP:3000 -sTCP:LISTEN)",
+      "Bash(awk 'NR==1 || /LISTEN/')",
+      "Bash(lsof -nP -iTCP:3000)"
     ]
   }
 }

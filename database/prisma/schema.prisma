@@ -1,0 +1,328 @@
+// Faraj OS — data model
+// SQLite: the whole database is a single file (prisma/dev.db) that doubles as the backup unit.
+// Money is stored as Float. Currency is a String: "CDF" or "USD". No auto-conversion is
+// persisted — CDF and USD are always kept separate; the FX rate (a Setting) is used only
+// for combined display totals.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---- Auth ----
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  sessions     Session[]
+  auditLogs    AuditLog[]        @relation("AuditActor")
+  targetOfLogs AuditLog[]        @relation("AuditTarget")
+
+  roleId              String
+  roleRef             Role            @relation(fields: [roleId], references: [id])
+  allBranches         Boolean         @default(false)
+  branches            UserBranch[]
+  permissions         UserPermission[]
+  locked              Boolean         @default(false)
+  lockedAt            DateTime?
+  lockReason          String          @default("")
+  failedLoginAttempts Int             @default(0)
+  lastLoginAt         DateTime?
+  loginAttempts       LoginAttempt[]
+  reportsCreated      DailyReport[] @relation("ReportCreatedBy")
+  reportsDeleted      DailyReport[] @relation("ReportDeletedBy")
+  goodsReceiptsCreated GoodsReceipt[]
+  purchasesCreated     SupplierPurchase[]
+  paymentsCreated      SupplierPayment[]
+}
+
+model Session {
+  token          String   @id
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt      DateTime
+  lastActivityAt DateTime @default(now())
+  createdAt      DateTime @default(now())
+}
+
+// ---- RBAC (Phase 1: User Management & Security) ----
+model Role {
+  id        String   @id @default(cuid())
+  key       String   @unique // super_admin | general_admin | branch_manager | accountant | inventory_officer | auditor | viewer
+  name      String   // display label
+  isSystem  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  users User[]
+}
+
+// Sparse per-user permission overrides — absence means "inherit the role default" (see lib/permissions.ts)
+model UserPermission {
+  id      String  @id @default(cuid())
+  userId  String
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module  String
+  action  String
+  allowed Boolean
+
+  @@unique([userId, module, action])
+}
+
+// Branch assignment join table — "All Branches" is User.allBranches, not a row per branch
+model UserBranch {
+  id       String @id @default(cuid())
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branchId String
+  branch   Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, branchId])
+}
+
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  email     String
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  success   Boolean
+  reason    String   @default("")
+  userAgent String   @default("")
+  createdAt DateTime @default(now())
+}
+
+// ---- Organisation ----
+model Branch {
+  id        String   @id @default(cuid())
+  name      String
+  manager   String   @default("")
+  color     String   @default("#0E7C6B")
+  type      String   @default("branch") // branch | warehouse
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  notes     String   @default("")
+  createdAt DateTime @default(now())
+
+  userBranches UserBranch[]
+  prices       BranchPrice[]
+  reports      DailyReport[]
+  receipts     StockReceipt[]
+  valuations   InventoryValuation[]
+  movements    StockMovement[]
+  goodsReceipts GoodsReceipt[]
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  products Product[]
+}
+
+model Product {
+  id         String   @id @default(cuid())
+  name       String
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+  baseCost   Float     @default(0)
+  currency   String    @default("CDF") // currency of the base cost
+  unit       String    @default("Unit")
+  barcode    String?
+  status     String    @default("Active") // Active | Inactive | Low
+  createdAt  DateTime  @default(now())
+
+  prices    BranchPrice[]
+  receipts  StockReceipt[]
+  movements StockMovement[]
+}
+
+// Each branch sets its own selling price per product
+model BranchPrice {
+  id           String  @id @default(cuid())
+  branchId     String
+  branch       Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sellingPrice Float
+  currency     String  @default("CDF")
+
+  @@unique([branchId, productId])
+}
+
+// ---- Daily reports (the WhatsApp replacement) ----
+model DailyReport {
+  id        String   @id @default(cuid())
+  branchId  String
+  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  date      DateTime
+  cashCdf   Float    @default(0)
+  cashUsd   Float    @default(0)
+  status    String   @default("pending") // pending | approved
+  locked    Boolean  @default(false)
+  source    String   @default("WhatsApp")
+  note      String   @default("")
+  createdAt DateTime @default(now())
+  approvedAt DateTime?
+
+  createdById String?
+  createdBy   User?    @relation("ReportCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  deletedAt   DateTime?
+  deletedById String?
+  deletedBy   User?     @relation("ReportDeletedBy", fields: [deletedById], references: [id], onDelete: SetNull)
+
+  receipts StockReceipt[]
+  expenses Expense[]
+
+  @@unique([branchId, date])
+}
+
+model StockReceipt {
+  id        String   @id @default(cuid())
+  reportId  String?
+  report    DailyReport? @relation(fields: [reportId], references: [id], onDelete: SetNull)
+  goodsReceiptId String?
+  goodsReceipt   GoodsReceipt? @relation(fields: [goodsReceiptId], references: [id], onDelete: SetNull)
+  branchId  String
+  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Float
+  supplier  String   @default("")
+  note      String   @default("")
+  date      DateTime @default(now())
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  reportId    String
+  report      DailyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  description String
+  amount      Float
+  currency    String   @default("CDF")
+  receiptUrl  String?
+}
+
+// ---- Inventory valuations entered every Friday (weekly) and month-end (monthly) ----
+model InventoryValuation {
+  id          String   @id @default(cuid())
+  branchId    String?
+  branch      Branch?  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  periodType  String   // weekly | monthly
+  periodEnding DateTime
+  valueCdf    Float    @default(0)
+  valueUsd    Float    @default(0)
+  // month-end extras
+  cashCdf         Float?  // current cash available
+  cashUsd         Float?
+  warehouseValue  Float?
+  branchValue     Float?
+  remarks     String   @default("")
+  createdAt   DateTime @default(now())
+}
+
+model StockMovement {
+  id        String   @id @default(cuid())
+  branchId  String
+  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  type      String   // receipt | transfer | sale | adjustment
+  quantity  Float
+  fromName  String   @default("")
+  toName    String   @default("")
+  note      String   @default("")
+  date      DateTime @default(now())
+}
+
+// ---- Suppliers ----
+// Outstanding balance is never stored — always computed live as
+// sum(purchases.totalAmount) - sum(payments.amount), per currency (see lib/metrics.ts).
+model Supplier {
+  id            String   @id @default(cuid())
+  name          String
+  company       String   @default("")
+  contactPerson String   @default("")
+  phone         String   @default("")
+  status        String   @default("Active") // Active | Inactive
+  notes         String   @default("")
+  createdAt     DateTime @default(now())
+
+  purchases     SupplierPurchase[]
+  payments      SupplierPayment[]
+  goodsReceipts GoodsReceipt[]
+}
+
+// A batch of goods physically received from a supplier into a branch — line items are
+// ordinary StockReceipt rows (goodsReceiptId set instead of reportId), so supplier-sourced
+// stock flows through the exact same inventory ledger (StockReceipt/StockMovement) the
+// Daily Report wizard's "Stock In" step already writes to.
+model GoodsReceipt {
+  id          String   @id @default(cuid())
+  supplierId  String
+  supplier    Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  branchId    String
+  branch      Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  date        DateTime
+  note        String   @default("")
+  createdById String?
+  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+
+  receipts    StockReceipt[]
+}
+
+// The financial/invoice side of buying from a supplier — increases outstanding balance.
+// Deliberately not linked to GoodsReceipt: an invoice and a physical delivery are recorded
+// independently in this module (see plan's "Assumptions" — keeps the module simple).
+model SupplierPurchase {
+  id            String   @id @default(cuid())
+  supplierId    String
+  supplier      Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  date          DateTime
+  invoiceNumber String   @default("")
+  totalAmount   Float
+  currency      String   @default("CDF")
+  notes         String   @default("")
+  createdById   String?
+  createdBy     User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+}
+
+model SupplierPayment {
+  id              String   @id @default(cuid())
+  supplierId      String
+  supplier        Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  date            DateTime
+  amount          Float
+  currency        String   @default("CDF")
+  method          String   @default("Cash") // Cash | Bank Transfer | Mobile Money | Cheque | Other
+  referenceNumber String   @default("")
+  notes           String   @default("")
+  createdById     String?
+  createdBy       User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt       DateTime @default(now())
+}
+
+// ---- System ----
+model Setting {
+  key   String @id
+  value String
+}
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  userId       String?
+  user         User?    @relation("AuditActor", fields: [userId], references: [id], onDelete: SetNull)
+  targetUserId String?
+  targetUser   User?    @relation("AuditTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+  action       String
+  entity       String   @default("")
+  detail       String   @default("")
+  branchName   String?
+  createdAt    DateTime @default(now())
+}

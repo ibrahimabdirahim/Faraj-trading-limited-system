@@ -6,19 +6,23 @@ A modern, admin-first business management platform for **Faraj Trading Limited**
 Built to replace WhatsApp evening reports, paper records and Excel with a real-time
 dashboard, branch performance tracking, inventory valuation and financial reporting.
 
-It is **admin-only** today (only the General Administrator logs in and transcribes each
-branch's report), but the data model already links users to branches so **branch logins
-can be added later without re-architecting**.
+Supports role-based logins (Super Administrator, General Administrator, Branch Manager,
+Accountant, Inventory Officer, Auditor, Viewer) with per-user permission overrides, branch
+assignment, and full account lifecycle management (lock/unlock, activate/deactivate,
+password reset, login history, activity log).
+
+See [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md) for how the codebase is organized.
 
 ---
 
 ## Tech stack
 
 - **Next.js 16** (App Router, React 19, TypeScript) — server components + server actions
-- **Prisma + SQLite** — the entire database is one file (`prisma/dev.db`), which doubles
-  as the backup unit
+- **Prisma + SQLite** — the entire database is one file (`database/prisma/dev.db`), which
+  doubles as the backup unit
 - **Pure-CSS design system** — theme-aware (light/dark), no UI framework, no webfont fetch
-- **bcrypt** password auth with server-side sessions (httpOnly cookie)
+- **bcrypt** password auth with server-side sessions (httpOnly cookie), a 5-minute idle
+  timeout, and login-attempt lockout
 
 ## Getting started
 
@@ -43,7 +47,10 @@ Then sign in with the seeded demo admin:
 | `npm run build`   | Production build                                         |
 | `npm run start`   | Run the production build                                |
 | `npm run setup`   | Migrate + generate + seed (first-time setup)            |
-| `npm run db:seed` | Re-seed branches, warehouse, categories, admin          |
+| `npm run db:seed` | Re-seed branches, warehouse, categories, roles, admin   |
+| `npm run db:migrate` | Create/apply a Prisma migration                      |
+| `npm run db:generate` | Regenerate the Prisma client                       |
+| `npm run db:studio` | Open Prisma Studio against `database/prisma/dev.db`   |
 | `npm run db:reset`| Wipe and recreate the database, then seed               |
 
 ## Modules
@@ -60,9 +67,11 @@ Then sign in with the seeded demo admin:
    ranking, and the Friday/month-end inventory valuation entry.
 6. **Finance** — cash, profit & loss, month-vs-previous comparison.
 7. **Reports** — generate/export Daily, Weekly, Monthly, Yearly, Branch, Inventory,
-   Cash, Expense, Profit reports.
-8. **Settings** — company, currencies (live CDF↔USD rate), branches, users, backup,
-   audit logs.
+   Cash, Expense, Profit reports as colored, branded Excel, PDF or print output.
+8. **User Management** — roles, per-user permission matrix, branch assignment, lock/
+   unlock, activate/deactivate, password reset, login history, activity log.
+9. **Settings** — company (name, logo), currencies (live CDF↔USD rate), branches,
+   backup, audit logs.
 
 ## How money works
 
@@ -71,14 +80,17 @@ CDF and USD are **always tracked separately** — never auto-mixed. A manual exc
 
 ## Data model
 
-See [`prisma/schema.prisma`](prisma/schema.prisma). Key tables: `User`, `Session`,
-`Branch`, `Category`, `Product`, `BranchPrice`, `DailyReport`, `StockReceipt`, `Expense`,
-`InventoryValuation`, `StockMovement`, `Setting`, `AuditLog`.
+See [`database/prisma/schema.prisma`](database/prisma/schema.prisma). Key tables: `User`,
+`Role`, `UserPermission`, `UserBranch`, `LoginAttempt`, `Session`, `Branch`, `Category`,
+`Product`, `BranchPrice`, `DailyReport`, `StockReceipt`, `Expense`, `InventoryValuation`,
+`StockMovement`, `Setting`, `AuditLog`.
 
 ## Backup
 
-The whole system is the single file `prisma/dev.db`. Copy it to back up everything;
-restore by putting it back. (It is git-ignored so your data is never committed by accident.)
+The whole system is the single file `database/prisma/dev.db`. Copy it to back up
+everything; restore by putting it back. (It is git-ignored so your data is never
+committed by accident.) Timestamped snapshots taken during maintenance live in
+`database/backup/`.
 
 ## Deployment
 
@@ -89,11 +101,8 @@ datasource and re-run migrations — application code is unchanged.
 
 ## Roadmap
 
-- Excel/PDF export wiring for the Reports module
 - Per-branch selling prices → exact profit (units sold × margin)
-- Branch logins (data model is already ready)
+- Per-branch data scoping (Branch Manager sees only their assigned branch's data)
+- Real OTP delivery via email/SMS (the two-step flow was built and later simplified
+  back to single-step pending a delivery provider)
 - Language: English / French / bilingual
-
----
-
-The original clickable HTML prototype is preserved in [`prototype/`](prototype/).

@@ -1,9 +1,10 @@
 import { getBranchMetrics } from "@/lib/metrics";
 import { prisma } from "@/lib/db";
 import { fmt, compact, fmtDate } from "@/lib/format";
-import { Spark } from "@/components/charts";
-import Icon from "@/components/Icon";
-import ValuationForm from "@/components/ValuationForm";
+import { Spark } from "@/components/shared/ChartPrimitives";
+import Icon from "@/components/shared/Icon";
+import ValuationForm from "@/components/branches/ValuationForm";
+import EditBranchForm from "@/components/branches/EditBranchForm";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,8 @@ export default async function BranchesPage() {
             <div className="card branch-card" key={b.id}>
               <div className="bc-top">
                 <div className="bc-logo" style={{ background: `linear-gradient(140deg,${b.color},color-mix(in srgb,${b.color} 55%,#000))` }}>{initials}</div>
-                <div><div className="bc-name">{b.name}</div><div className="bc-mgr">{b.manager}</div></div>
+                <div style={{ flex: 1, minWidth: 0 }}><div className="bc-name">{b.name}</div><div className="bc-mgr">{b.manager}</div></div>
+                <EditBranchForm branch={{ id: b.id, name: b.name, manager: b.manager, color: b.color, type: "branch" }} />
                 <div className="bc-rank">#{b.rank}</div>
               </div>
               <div className="bc-stats">

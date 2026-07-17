@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/db";
 import { money } from "@/lib/format";
-import Icon from "@/components/Icon";
-import ToastButton from "@/components/ToastButton";
-import AddProductForm from "@/components/AddProductForm";
+import Icon from "@/components/shared/Icon";
+import ToastButton from "@/components/shared/ToastButton";
+import AddProductForm from "@/components/products/AddProductForm";
 
 export const dynamic = "force-dynamic";
 

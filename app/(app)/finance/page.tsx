@@ -1,9 +1,8 @@
 import { prisma } from "@/lib/db";
 import { startOfToday, addDays } from "@/lib/metrics";
-import { getSettings } from "@/lib/settings";
-import { fmt, compact } from "@/lib/format";
-import { AreaChart } from "@/components/charts";
-import ToastButton from "@/components/ToastButton";
+import { compact } from "@/lib/format";
+import { AreaChart } from "@/components/shared/ChartPrimitives";
+import ToastButton from "@/components/shared/ToastButton";
 
 export const dynamic = "force-dynamic";
 
@@ -12,14 +11,13 @@ function MiniStat({ label, value, color, delta }: { label: string; value: string
 }
 
 export default async function FinancePage() {
-  const settings = await getSettings();
   const today = startOfToday();
 
   // last 7 days revenue + expenses
   const days: { label: string; rev: number; exp: number }[] = [];
   for (let i = 6; i >= 0; i--) {
     const d = addDays(today, -i);
-    const reps = await prisma.dailyReport.findMany({ where: { date: d }, include: { expenses: true } });
+    const reps = await prisma.dailyReport.findMany({ where: { date: d, deletedAt: null }, include: { expenses: true } });
     const rev = reps.reduce((a, r) => a + r.cashCdf, 0);
     const exp = reps.reduce((a, r) => a + r.expenses.filter((e) => e.currency === "CDF").reduce((s, e) => s + e.amount, 0), 0);
     days.push({ label: d.toLocaleDateString("en-GB", { weekday: "short" }), rev, exp });
@@ -29,8 +27,8 @@ export default async function FinancePage() {
   // month vs previous (by report date)
   const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
   const prevMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-  const thisMonth = await prisma.dailyReport.findMany({ where: { date: { gte: monthStart } }, include: { expenses: true } });
-  const prevMonth = await prisma.dailyReport.findMany({ where: { date: { gte: prevMonthStart, lt: monthStart } }, include: { expenses: true } });
+  const thisMonth = await prisma.dailyReport.findMany({ where: { date: { gte: monthStart }, deletedAt: null }, include: { expenses: true } });
+  const prevMonth = await prisma.dailyReport.findMany({ where: { date: { gte: prevMonthStart, lt: monthStart }, deletedAt: null }, include: { expenses: true } });
   const sum = (reps: typeof thisMonth) => ({ rev: reps.reduce((a, r) => a + r.cashCdf, 0), exp: reps.reduce((a, r) => a + r.expenses.filter((e) => e.currency === "CDF").reduce((s, e) => s + e.amount, 0), 0) });
   const tm = sum(thisMonth), pm = sum(prevMonth);
   const growth = (c: number, p: number) => (p ? ((c - p) / p) * 100 : c > 0 ? 100 : 0);

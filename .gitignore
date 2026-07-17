@@ -41,7 +41,8 @@ yarn-error.log*
 next-env.d.ts
 
 # database (SQLite) — created locally by `npm run setup`
-prisma/dev.db
-prisma/dev.db-journal
+database/prisma/dev.db
+database/prisma/dev.db-journal
+database/backup/
 *.db
 *.db-journal
