@@ -1,31 +1,69 @@
-<<<<<<< HEAD
 # Faraj OS — Business Operating System
 
 A modern, admin-first business management platform for **Faraj Trading Limited**
 (wholesale & retail distribution · 6+ branches · dual-currency **CDF / USD**).
 
 Built to replace WhatsApp evening reports, paper records and Excel with a real-time
-dashboard, branch performance tracking, inventory valuation and financial reporting.
-
-Supports role-based logins (Super Administrator, General Administrator, Branch Manager,
-Accountant, Inventory Officer, Auditor, Viewer) with per-user permission overrides, branch
-assignment, and full account lifecycle management (lock/unlock, activate/deactivate,
-password reset, login history, activity log).
+dashboard, branch performance tracking, inventory valuation, supplier management, and
+financial reporting.
 
 See [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md) for how the codebase is organized.
 
 ---
 
-## Tech stack
+## Overview
+
+Faraj OS centralizes daily branch reporting, inventory, finance, and supplier
+management into a single system with:
+
+- A real-time dashboard summarizing today's operations across all branches
+- Role-based access control with granular, per-user permission overrides
+- Dual-currency (CDF/USD) tracking that never silently mixes currencies
+- A full audit trail — every create/edit/delete/approve action is logged
+
+## Features
+
+- **Daily Reports** — a guided wizard to record each branch's evening report (cash,
+  stock received, expenses), with a pending → approved lifecycle, locking, and a Trash
+  for restoring or permanently deleting reports
+- **Dashboard** — a today-only operations view: cash collected, available cash, branch
+  ranking, quick actions, and recent activity
+- **Products & Inventory** — product catalogue, stock movements, warehouse & branch
+  valuations
+- **Branches** — branch profiles, performance scores, and manager assignment
+- **Finance** — cash, profit & loss, and month-over-month comparisons
+- **Suppliers** — supplier directory, goods received, purchases, payments, and
+  outstanding balance tracking
+- **Reports** — generate and export Daily, Weekly, Monthly, Branch, Inventory,
+  Finance, Expense, Profit, and Supplier reports as branded Excel, PDF, or print output
+- **User Management** — roles, a per-user permission matrix, branch assignment,
+  lock/unlock, activate/deactivate, password reset, login history, and activity log
+
+## User Roles & Permissions
+
+Access is controlled by role, with optional per-user overrides for finer-grained
+control:
+
+| Role | Typical Access |
+| --- | --- |
+| **Super Administrator** | Full system access |
+| **General Administrator** | Full system access |
+| **Branch Manager** | Manage their assigned branch's daily reports; view-only elsewhere |
+| **Accountant** | Finance and suppliers (view/create/edit), reports (view/export) |
+| **Inventory Officer** | Products, inventory, and goods received |
+| **Auditor** | Read-only access across every module, including settings |
+| **Viewer** | Read-only access to core business modules |
+
+## Tech Stack
 
 - **Next.js 16** (App Router, React 19, TypeScript) — server components + server actions
 - **Prisma + SQLite** — the entire database is one file (`database/prisma/dev.db`), which
   doubles as the backup unit
 - **Pure-CSS design system** — theme-aware (light/dark), no UI framework, no webfont fetch
-- **bcrypt** password auth with server-side sessions (httpOnly cookie), a 5-minute idle
+- **bcrypt** password auth with server-side sessions (httpOnly cookie), an idle
   timeout, and login-attempt lockout
 
-## Getting started
+## Getting Started
 
 ```bash
 npm install          # install dependencies
@@ -33,58 +71,68 @@ npm run setup        # create the database, generate the client, and seed
 npm run dev          # start the dev server → http://localhost:3000
 ```
 
-Then sign in with the seeded demo admin:
+Then sign in with the seeded demo admin account:
 
-- **Email:** `soljaman293@gmail.com`
-- **Password:** `faraj2026`
+- **Email:** `admin@example.com`
+- **Password:** `<configured during setup>`
 
 > Change these in **Settings** after first sign-in.
 
-### Useful scripts
+### Useful Scripts
 
-| Script            | What it does                                            |
-| ----------------- | ------------------------------------------------------- |
-| `npm run dev`     | Start the development server                             |
-| `npm run build`   | Production build                                         |
-| `npm run start`   | Run the production build                                |
-| `npm run setup`   | Migrate + generate + seed (first-time setup)            |
-| `npm run db:seed` | Re-seed branches, warehouse, categories, roles, admin   |
-| `npm run db:migrate` | Create/apply a Prisma migration                      |
-| `npm run db:generate` | Regenerate the Prisma client                       |
-| `npm run db:studio` | Open Prisma Studio against `database/prisma/dev.db`   |
-| `npm run db:reset`| Wipe and recreate the database, then seed               |
+| Script | What it does |
+| --- | --- |
+| `npm run dev` | Start the development server |
+| `npm run build` | Production build |
+| `npm run start` | Run the production build |
+| `npm run setup` | Migrate + generate + seed (first-time setup) |
+| `npm run db:seed` | Re-seed branches, warehouse, categories, roles, admin |
+| `npm run db:migrate` | Create/apply a Prisma migration |
+| `npm run db:generate` | Regenerate the Prisma client |
+| `npm run db:studio` | Open Prisma Studio against `database/prisma/dev.db` |
+| `npm run db:reset` | Wipe and recreate the database, then seed |
 
-## Modules
+## System Modules
 
-1. **Dashboard** — report-submission status, dual-currency KPI tiles (cash / expenses /
-   profit / inventory), cash-flow & branch charts, auto-detected business intelligence,
-   branch-health leaderboard, activity feed, AI daily summary.
-2. **Daily Reports** — a 5-step wizard to transcribe each branch's evening report
-   (branch → stock received → cash CDF+USD → expenses → review). Saved as *pending*,
-   then approved to *lock*. Every submission updates the dashboard, inventory and scores.
-3. **Products** — catalogue with base cost (Head Office) per item; add/import.
+1. **Dashboard** — today's operations at a glance: cash collected, available cash,
+   branch ranking, quick actions, and recent activity.
+2. **Daily Reports** — a step-by-step wizard to transcribe each branch's evening
+   report (branch → stock received → cash CDF+USD → expenses → review). Saved as
+   *pending*, then approved to *lock*. Every submission updates the dashboard,
+   inventory, and branch scores.
+3. **Products** — catalogue with base cost (Head Office) per item.
 4. **Inventory** — warehouse & branch stock value, movements.
-5. **Branches** — Luilu 1, Luilu 2, Lumundu, Mipeto 1, Mipeto 2, KWM; health scores,
-   ranking, and the Friday/month-end inventory valuation entry.
+5. **Branches** — branch profiles, health scores, ranking, and the Friday/month-end
+   inventory valuation entry.
 6. **Finance** — cash, profit & loss, month-vs-previous comparison.
-7. **Reports** — generate/export Daily, Weekly, Monthly, Yearly, Branch, Inventory,
-   Cash, Expense, Profit reports as colored, branded Excel, PDF or print output.
-8. **User Management** — roles, per-user permission matrix, branch assignment, lock/
-   unlock, activate/deactivate, password reset, login history, activity log.
-9. **Settings** — company (name, logo), currencies (live CDF↔USD rate), branches,
-   backup, audit logs.
+7. **Suppliers** — supplier directory, goods received (updates inventory), purchases
+   (invoices & outstanding balance), payments, and dedicated supplier reports.
+8. **Reports** — generate/export Daily, Weekly, Monthly, Branch, Inventory, Finance,
+   Expense, Profit, and Supplier reports as colored, branded Excel, PDF, or print output.
+9. **User Management** — roles, per-user permission matrix, branch assignment,
+   lock/unlock, activate/deactivate, password reset, login history, activity log.
+10. **Settings** — company (name, logo), currencies (live CDF↔USD rate), branches,
+    backup, audit logs.
 
-## How money works
+## How Money Works
 
-CDF and USD are **always tracked separately** — never auto-mixed. A manual exchange rate
-(Settings → Currencies) is used only for *combined display estimates* on the dashboard.
+CDF and USD are **always tracked separately** — never auto-mixed. A manual exchange
+rate (Settings → Currencies) is used only for *combined display estimates* on the
+dashboard.
 
-## Data model
+The dashboard also distinguishes two figures that are easy to confuse:
 
-See [`database/prisma/schema.prisma`](database/prisma/schema.prisma). Key tables: `User`,
-`Role`, `UserPermission`, `UserBranch`, `LoginAttempt`, `Session`, `Branch`, `Category`,
-`Product`, `BranchPrice`, `DailyReport`, `StockReceipt`, `Expense`, `InventoryValuation`,
-`StockMovement`, `Setting`, `AuditLog`.
+- **Total Cash Collected** — money received from branches; never reduced by expenses
+  or supplier payments
+- **Available Cash** — Total Cash Collected minus supplier payments and branch expenses
+
+## Data Model
+
+See [`database/prisma/schema.prisma`](database/prisma/schema.prisma). Key tables:
+`User`, `Role`, `UserPermission`, `UserBranch`, `LoginAttempt`, `Session`, `Branch`,
+`Category`, `Product`, `BranchPrice`, `DailyReport`, `StockReceipt`, `Expense`,
+`InventoryValuation`, `StockMovement`, `Supplier`, `GoodsReceipt`, `SupplierPurchase`,
+`SupplierPayment`, `Setting`, `AuditLog`.
 
 ## Backup
 
@@ -96,9 +144,10 @@ committed by accident.) Timestamped snapshots taken during maintenance live in
 ## Deployment
 
 Any Node host works. For a persistent SQLite file use a host with a writable disk
-(Railway, Render, Fly.io, a VPS). Set `DATABASE_URL` and `SESSION_SECRET` env vars,
-run `npm run build` then `npm run start`. To move to Postgres later, change the Prisma
-datasource and re-run migrations — application code is unchanged.
+(Railway, Render, Fly.io, a VPS). Set the `DATABASE_URL` and `SESSION_SECRET`
+environment variables, run `npm run build`, then `npm run start`. To move to Postgres
+later, change the Prisma datasource and re-run migrations — application code is
+unchanged.
 
 ## Roadmap
 
@@ -107,7 +156,3 @@ datasource and re-run migrations — application code is unchanged.
 - Real OTP delivery via email/SMS (the two-step flow was built and later simplified
   back to single-step pending a delivery provider)
 - Language: English / French / bilingual
-=======
-# Faraj-trading-limited-system
-A modern branch reporting, inventory, and financial management system for Faraj Trading Limited.
->>>>>>> ae52c425135a010c2f58e6cbb8cb2d19feecbb68
