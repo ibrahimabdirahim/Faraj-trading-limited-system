@@ -21,7 +21,7 @@ management into a single system with:
 - Dual-currency (CDF/USD) tracking that never silently mixes currencies
 - A full audit trail — every create/edit/delete/approve action is logged
 
-## Features
+## Key Features
 
 - **Daily Reports** — a guided wizard to record each branch's evening report (cash,
   stock received, expenses), with a pending → approved lifecycle, locking, and a Trash
@@ -71,14 +71,18 @@ npm run setup        # create the database, generate the client, and seed
 npm run dev          # start the dev server → http://localhost:3000
 ```
 
-Then sign in with the seeded demo admin account:
+## Demo Login / Initial Admin Setup
+
+`npm run setup` seeds a demo administrator account so you can sign in immediately:
 
 - **Email:** `admin@example.com`
 - **Password:** `<configured during setup>`
 
-> Change these in **Settings** after first sign-in.
+> These are placeholders — the actual seeded credentials are set by the seed script
+> on your machine and are never committed to this repository. Change them in
+> **Settings** immediately after your first sign-in.
 
-### Useful Scripts
+## Useful Scripts
 
 | Script | What it does |
 | --- | --- |
@@ -114,7 +118,7 @@ Then sign in with the seeded demo admin account:
 10. **Settings** — company (name, logo), currencies (live CDF↔USD rate), branches,
     backup, audit logs.
 
-## How Money Works
+## How Dual-Currency CDF/USD Works
 
 CDF and USD are **always tracked separately** — never auto-mixed. A manual exchange
 rate (Settings → Currencies) is used only for *combined display estimates* on the
