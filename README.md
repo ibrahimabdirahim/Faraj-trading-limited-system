@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Faraj OS — Business Operating System
 
 A modern, admin-first business management platform for **Faraj Trading Limited**
@@ -106,3 +107,7 @@ datasource and re-run migrations — application code is unchanged.
 - Real OTP delivery via email/SMS (the two-step flow was built and later simplified
   back to single-step pending a delivery provider)
 - Language: English / French / bilingual
+=======
+# Faraj-trading-limited-system
+A modern branch reporting, inventory, and financial management system for Faraj Trading Limited.
+>>>>>>> ae52c425135a010c2f58e6cbb8cb2d19feecbb68
