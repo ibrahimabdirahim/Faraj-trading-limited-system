@@ -220,21 +220,26 @@ export async function updateCompanyLogo(logo: string) {
   return { ok: true };
 }
 
-export type UserInput = { name: string; email: string; password: string; roleId: string; branchIds: string[]; allBranches: boolean };
+export type UserInput = { name: string; email: string; username: string; password: string; roleId: string; branchIds: string[]; allBranches: boolean };
 
 export async function createUser(input: UserInput) {
   const admin = await requirePermission("user-management", "create");
   const email = input.email.trim().toLowerCase();
+  const username = input.username.trim().toLowerCase();
   if (!input.name.trim() || !email || !input.password || !input.roleId) return { ok: false, error: "Name, email, password and role are required." };
+  if (!username) return { ok: false, error: "Username is required." };
+  if (username.includes("@")) return { ok: false, error: "Username can't contain \"@\" — that's what the email field is for." };
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return { ok: false, error: "A user with that email already exists." };
+  const usernameTaken = await prisma.user.findUnique({ where: { username } });
+  if (usernameTaken) return { ok: false, error: "That username is already taken." };
   const role = await prisma.role.findUnique({ where: { id: input.roleId } });
   if (!role) return { ok: false, error: "Unknown role." };
   const passwordHash = await bcrypt.hash(input.password, 10);
   const allBranches = ADMIN_TIER_ROLE_KEYS.includes(role.key as RoleKey) || input.allBranches;
   const u = await prisma.user.create({
     data: {
-      name: input.name.trim(), email, passwordHash, roleId: role.id, allBranches,
+      name: input.name.trim(), email, username, passwordHash, roleId: role.id, allBranches,
       branches: allBranches ? undefined : { create: input.branchIds.map((branchId) => ({ branchId })) },
     },
   });
@@ -244,23 +249,28 @@ export async function createUser(input: UserInput) {
   return { ok: true, id: u.id };
 }
 
-export type UserUpdateInput = { id: string; name: string; email: string; roleId: string; branchIds: string[]; allBranches: boolean; active: boolean };
+export type UserUpdateInput = { id: string; name: string; email: string; username: string; roleId: string; branchIds: string[]; allBranches: boolean; active: boolean };
 
 export async function updateUser(input: UserUpdateInput) {
   const admin = await requirePermission("user-management", "edit");
   const email = input.email.trim().toLowerCase();
+  const username = input.username.trim().toLowerCase();
   if (!input.name.trim() || !email || !input.roleId) return { ok: false, error: "Name, email and role are required." };
+  if (!username) return { ok: false, error: "Username is required." };
+  if (username.includes("@")) return { ok: false, error: "Username can't contain \"@\" — that's what the email field is for." };
   const role = await prisma.role.findUnique({ where: { id: input.roleId } });
   if (!role) return { ok: false, error: "Unknown role." };
   const dupe = await prisma.user.findUnique({ where: { email } });
   if (dupe && dupe.id !== input.id) return { ok: false, error: "A user with that email already exists." };
+  const usernameDupe = await prisma.user.findUnique({ where: { username } });
+  if (usernameDupe && usernameDupe.id !== input.id) return { ok: false, error: "That username is already taken." };
 
   const allBranches = ADMIN_TIER_ROLE_KEYS.includes(role.key as RoleKey) || input.allBranches;
   await prisma.userBranch.deleteMany({ where: { userId: input.id } });
   const u = await prisma.user.update({
     where: { id: input.id },
     data: {
-      name: input.name.trim(), email, roleId: role.id, active: input.active, allBranches,
+      name: input.name.trim(), email, username, roleId: role.id, active: input.active, allBranches,
       branches: allBranches ? undefined : { create: input.branchIds.map((branchId) => ({ branchId })) },
     },
   });

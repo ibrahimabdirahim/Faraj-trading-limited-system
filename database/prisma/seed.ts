@@ -20,6 +20,7 @@ const CATEGORIES = ["Construction", "Food", "Household", "Electronics", "Beverag
 const ROLES: { key: string; name: string }[] = [
   { key: "super_admin", name: "Super Administrator" },
   { key: "general_admin", name: "General Administrator" },
+  { key: "it_admin", name: "IT Admin" },
   { key: "branch_manager", name: "Branch Manager" },
   { key: "accountant", name: "Accountant" },
   { key: "inventory_officer", name: "Inventory Officer" },
@@ -42,7 +43,7 @@ async function main() {
   await prisma.user.upsert({
     where: { email },
     update: {},
-    create: { name: "Soulemane A.", email, passwordHash, roleId: roleByKey.get("general_admin")!, allBranches: true },
+    create: { name: "Soulemane A.", email, username: "admin", passwordHash, roleId: roleByKey.get("general_admin")!, allBranches: true },
   });
 
   // Settings

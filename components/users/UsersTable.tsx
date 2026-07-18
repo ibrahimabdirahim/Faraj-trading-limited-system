@@ -9,7 +9,7 @@ import UserDetailModal, { type UserDetail } from "@/components/users/UserDetailM
 import PermissionMatrixForm from "@/components/users/PermissionMatrixForm";
 
 export type UserRow = {
-  id: string; name: string; email: string; active: boolean; locked: boolean; lockReason: string;
+  id: string; name: string; email: string; username: string; active: boolean; locked: boolean; lockReason: string;
   roleId: string; roleKey: string; roleName: string; allBranches: boolean; branchIds: string[]; branchNames: string[];
   createdAt: Date; lastLoginAt: Date | null;
   effective: PermissionMap; roleDefaults: PermissionMap;
@@ -24,7 +24,7 @@ export default function UsersTable({ users, roles, branches, currentUserId }: {
   const [branchFilter, setBranchFilter] = useState("all");
 
   const filtered = useMemo(() => users.filter((u) => {
-    if (q && !`${u.name} ${u.email}`.toLowerCase().includes(q.toLowerCase())) return false;
+    if (q && !`${u.name} ${u.email} ${u.username}`.toLowerCase().includes(q.toLowerCase())) return false;
     if (roleFilter !== "all" && u.roleId !== roleFilter) return false;
     if (statusFilter === "active" && (!u.active || u.locked)) return false;
     if (statusFilter === "inactive" && u.active) return false;
@@ -70,11 +70,11 @@ export default function UsersTable({ users, roles, branches, currentUserId }: {
                 id: u.id, name: u.name, email: u.email, roleName: u.roleName, status: statusClass as UserDetail["status"],
                 statusLabel, branchLabel, createdAt: u.createdAt, lastLoginAt: u.lastLoginAt, lockReason: u.lockReason,
               };
-              const editable: EditableUser = { id: u.id, name: u.name, email: u.email, active: u.active, roleId: u.roleId, allBranches: u.allBranches, branchIds: u.branchIds };
+              const editable: EditableUser = { id: u.id, name: u.name, email: u.email, username: u.username, active: u.active, roleId: u.roleId, allBranches: u.allBranches, branchIds: u.branchIds };
               return (
                 <tr key={u.id}>
                   <td className="t-name">{u.name}</td>
-                  <td className="num">{u.email}</td>
+                  <td className="num"><div>{u.email}</div><div className="t-sub">@{u.username || "—"}</div></td>
                   <td><span className="prod-cat">{u.roleName}</span></td>
                   <td className="dot-unit">{branchLabel}</td>
                   <td><span className={`status ${statusClass}`}><i />{statusLabel}</span></td>

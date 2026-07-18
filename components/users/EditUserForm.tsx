@@ -4,10 +4,11 @@ import { useRouter } from "next/navigation";
 import Icon from "@/components/shared/Icon";
 import { toast } from "@/lib/toast";
 import { updateUser } from "@/app/actions";
+import { ADMIN_TIER_ROLE_KEYS } from "@/lib/permissionTypes";
 import BranchAssignmentField, { type BranchAssignmentValue } from "@/components/users/BranchAssignmentField";
 
 export type EditableUser = {
-  id: string; name: string; email: string; active: boolean; roleId: string | null;
+  id: string; name: string; email: string; username: string; active: boolean; roleId: string | null;
   allBranches: boolean; branchIds: string[];
 };
 
@@ -16,19 +17,19 @@ export default function EditUserForm({ user, branches, roles }: { user: Editable
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [f, setF] = useState({ name: user.name, email: user.email, roleId: user.roleId ?? roles[0]?.id ?? "", active: user.active });
+  const [f, setF] = useState({ name: user.name, email: user.email, username: user.username, roleId: user.roleId ?? roles[0]?.id ?? "", active: user.active });
   const [assignment, setAssignment] = useState<BranchAssignmentValue>({
     mode: user.allBranches ? "all" : user.branchIds.length > 1 ? "multiple" : "one",
     branchIds: user.branchIds,
   });
   const set = (k: string, v: string) => setF((p) => ({ ...p, [k]: v }));
   const selectedRole = roles.find((r) => r.id === f.roleId);
-  const isAdminTier = selectedRole?.key === "super_admin" || selectedRole?.key === "general_admin";
+  const isAdminTier = (ADMIN_TIER_ROLE_KEYS as string[]).includes(selectedRole?.key ?? "");
 
   async function save() {
     setSaving(true);
     setError(null);
-    const res = await updateUser({ id: user.id, name: f.name, email: f.email, roleId: f.roleId, branchIds: assignment.branchIds, allBranches: assignment.mode === "all", active: f.active });
+    const res = await updateUser({ id: user.id, name: f.name, email: f.email, username: f.username, roleId: f.roleId, branchIds: assignment.branchIds, allBranches: assignment.mode === "all", active: f.active });
     setSaving(false);
     if (res.ok) { setOpen(false); toast("User updated", f.name); router.refresh(); }
     else setError(res.error ?? "Could not update user.");
@@ -47,8 +48,11 @@ export default function EditUserForm({ user, branches, roles }: { user: Editable
                 <div className="fg"><label className="field-label">Full name</label><input className="field" value={f.name} onChange={(e) => set("name", e.target.value)} /></div>
               </div>
               <div className="field-row">
+                <div className="fg"><label className="field-label">Username</label><input className="field" value={f.username} onChange={(e) => set("username", e.target.value)} /></div>
                 <div className="fg"><label className="field-label">Email</label><input className="field" type="email" value={f.email} onChange={(e) => set("email", e.target.value)} /></div>
-                <div className="fg" style={{ maxWidth: 180 }}><label className="field-label">Role</label><select className="field" value={f.roleId} onChange={(e) => set("roleId", e.target.value)}>{roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select></div>
+              </div>
+              <div className="field-row">
+                <div className="fg" style={{ maxWidth: 220 }}><label className="field-label">Role</label><select className="field" value={f.roleId} onChange={(e) => set("roleId", e.target.value)}>{roles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select></div>
               </div>
               {!isAdminTier && <BranchAssignmentField branches={branches} value={assignment} onChange={setAssignment} />}
               <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, fontSize: 13 }}>
@@ -57,7 +61,7 @@ export default function EditUserForm({ user, branches, roles }: { user: Editable
               </label>
               {error && <p style={{ color: "var(--crit)", fontSize: 12.5, marginTop: 10 }}>{error}</p>}
             </div>
-            <div className="modal-foot"><button className="btn" onClick={() => setOpen(false)}>Cancel</button><div className="spacer" /><button className="btn btn-primary" disabled={saving || !f.name.trim() || !f.email.trim()} onClick={save}>{saving ? "Saving…" : "Save changes"}</button></div>
+            <div className="modal-foot"><button className="btn" onClick={() => setOpen(false)}>Cancel</button><div className="spacer" /><button className="btn btn-primary" disabled={saving || !f.name.trim() || !f.email.trim() || !f.username.trim()} onClick={save}>{saving ? "Saving…" : "Save changes"}</button></div>
           </div>
         </div>
       )}

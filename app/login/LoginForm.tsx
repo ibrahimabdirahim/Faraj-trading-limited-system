@@ -4,7 +4,7 @@ import Icon from "@/components/shared/Icon";
 import { login } from "./actions";
 
 export default function LoginForm() {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
@@ -16,7 +16,7 @@ export default function LoginForm() {
     e.preventDefault();
     setPending(true);
     setError(null);
-    const res = await login(email, password, remember);
+    const res = await login(identifier, password, remember);
     setPending(false);
     if (!res.ok) setError(res.error);
   }
@@ -25,8 +25,8 @@ export default function LoginForm() {
     <form onSubmit={handleSubmit}>
       {error && <div className="login-err">{error}</div>}
       <div className="login-field">
-        <label htmlFor="email">Username or Email</label>
-        <input id="email" name="email" type="email" autoComplete="username" placeholder="you@faraj.cd" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        <label htmlFor="identifier">Username or Email</label>
+        <input id="identifier" name="identifier" type="text" autoComplete="username" placeholder="username or you@faraj.cd" value={identifier} onChange={(e) => setIdentifier(e.target.value)} required />
       </div>
       <div className="login-field">
         <label htmlFor="password">Password</label>

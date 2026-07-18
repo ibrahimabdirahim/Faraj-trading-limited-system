@@ -11,11 +11,12 @@ export type Module = (typeof MODULES)[number];
 export const ACTIONS = ["view", "create", "edit", "delete", "approve", "export", "print"] as const;
 export type Action = (typeof ACTIONS)[number];
 
-export type RoleKey = "super_admin" | "general_admin" | "branch_manager" | "accountant" | "inventory_officer" | "auditor" | "viewer";
+export type RoleKey = "super_admin" | "general_admin" | "it_admin" | "branch_manager" | "accountant" | "inventory_officer" | "auditor" | "viewer";
 
 export const ROLES: { key: RoleKey; name: string }[] = [
   { key: "super_admin", name: "Super Administrator" },
   { key: "general_admin", name: "General Administrator" },
+  { key: "it_admin", name: "IT Admin" },
   { key: "branch_manager", name: "Branch Manager" },
   { key: "accountant", name: "Accountant" },
   { key: "inventory_officer", name: "Inventory Officer" },
@@ -24,7 +25,7 @@ export const ROLES: { key: RoleKey; name: string }[] = [
 ];
 
 // Roles allowed to manage other users, delete the last one of their own tier, etc.
-export const ADMIN_TIER_ROLE_KEYS: RoleKey[] = ["super_admin", "general_admin"];
+export const ADMIN_TIER_ROLE_KEYS: RoleKey[] = ["super_admin", "general_admin", "it_admin"];
 
 const ALL_MODULES = [...MODULES];
 const ALL_ACTIONS = [...ACTIONS];
@@ -35,6 +36,7 @@ const READ_EXPORT = ["view", "export", "print"] as const;
 export const ROLE_DEFAULTS: Record<RoleKey, Partial<Record<Module, readonly Action[]>>> = {
   super_admin: Object.fromEntries(ALL_MODULES.map((m) => [m, ALL_ACTIONS])),
   general_admin: Object.fromEntries(ALL_MODULES.map((m) => [m, ALL_ACTIONS])),
+  it_admin: Object.fromEntries(ALL_MODULES.map((m) => [m, ALL_ACTIONS])),
   branch_manager: {
     "dashboard": ["view"],
     "daily-reports": ["view", "create", "edit", "approve", "export", "print"],

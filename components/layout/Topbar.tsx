@@ -1,8 +1,13 @@
+"use client";
+import { usePathname } from "next/navigation";
 import Icon from "@/components/shared/Icon";
 import ThemeToggle from "@/components/layout/ThemeToggle";
 import NewReportButton from "@/components/daily-reports/NewReportButton";
 
 export default function Topbar({ hasNotifications }: { hasNotifications: boolean }) {
+  const path = usePathname();
+  const inSuppliers = path.startsWith("/suppliers");
+
   return (
     <header className="topbar">
       <div className="search">
@@ -16,7 +21,7 @@ export default function Topbar({ hasNotifications }: { hasNotifications: boolean
           <Icon name="bell" size={18} />
         </button>
         <ThemeToggle />
-        <NewReportButton />
+        {!inSuppliers && <NewReportButton />}
       </div>
     </header>
   );

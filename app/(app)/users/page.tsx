@@ -17,7 +17,7 @@ export default async function UsersPage() {
   ]);
 
   const rows: UserRow[] = await Promise.all(users.map(async (u) => ({
-    id: u.id, name: u.name, email: u.email, active: u.active, locked: u.locked, lockReason: u.lockReason,
+    id: u.id, name: u.name, email: u.email, username: u.username ?? "", active: u.active, locked: u.locked, lockReason: u.lockReason,
     roleId: u.roleId, roleKey: u.roleRef.key, roleName: u.roleRef.name,
     allBranches: u.allBranches, branchIds: u.branches.map((b) => b.branchId), branchNames: u.branches.map((b) => b.branch.name),
     createdAt: u.createdAt, lastLoginAt: u.lastLoginAt,
