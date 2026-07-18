@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
 import { createSession } from "@/lib/session";
 
-const MAX_FAILED_ATTEMPTS = 5;
+const MAX_FAILED_ATTEMPTS = 10;
 
 async function recordAttempt(identifier: string, userId: string | null, success: boolean, reason: string) {
   const ua = (await headers()).get("user-agent") ?? "";
