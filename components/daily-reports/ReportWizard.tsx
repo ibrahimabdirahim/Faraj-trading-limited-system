@@ -3,8 +3,9 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/shared/Icon";
 import { toast } from "@/lib/toast";
-import { createDailyReport } from "@/app/actions";
+import { createDailyReport, createProduct } from "@/app/actions";
 import { fmt } from "@/lib/format";
+import { PRODUCT_UNITS, OTHER_UNIT } from "@/lib/units";
 
 type Branch = { id: string; name: string; manager: string };
 type Product = { id: string; name: string; unit: string };
@@ -31,10 +32,17 @@ export default function ReportWizard({ branches, fxRate }: { branches: Branch[];
   const [cashUsd, setCashUsd] = useState("");
   const [expenses, setExpenses] = useState<Expense[]>([{ description: "", amount: "", currency: "CDF" }]);
 
+  const [newProductRow, setNewProductRow] = useState<number | null>(null);
+  const [newProductName, setNewProductName] = useState("");
+  const [newProductUnit, setNewProductUnit] = useState<string>("Piece");
+  const [newProductCustomUnit, setNewProductCustomUnit] = useState("");
+  const [creatingProduct, setCreatingProduct] = useState(false);
+
   const reset = useCallback(() => {
     setStep(0); setBranchId(branches[0]?.id ?? ""); setDate(today());
     setNote(""); setHasStock(false); setReceipts([{ productId: "", quantity: "", supplier: "", note: "" }]);
     setCashCdf(""); setCashUsd(""); setExpenses([{ description: "", amount: "", currency: "CDF" }]);
+    setNewProductRow(null); setNewProductName(""); setNewProductUnit("Piece"); setNewProductCustomUnit("");
   }, [branches]);
 
   useEffect(() => {
@@ -55,6 +63,26 @@ export default function ReportWizard({ branches, fxRate }: { branches: Branch[];
   const branch = branches.find((b) => b.id === branchId);
   const expTotalCdf = expenses.filter((e) => e.currency === "CDF").reduce((a, e) => a + parseNum(e.amount), 0);
   const expTotalUsd = expenses.filter((e) => e.currency === "USD").reduce((a, e) => a + parseNum(e.amount), 0);
+
+  // Lets the admin add a missing product without leaving the wizard — creates it in the
+  // catalogue and immediately selects it on the receipt line that triggered "+ Add new product".
+  async function createInlineProduct(rowIndex: number) {
+    if (!newProductName.trim()) { toast("Name required", "Enter a product name", "err"); return; }
+    const unit = newProductUnit === OTHER_UNIT ? newProductCustomUnit.trim() : newProductUnit;
+    if (!unit) { toast("Unit required", "Enter a unit of measure", "err"); return; }
+    setCreatingProduct(true);
+    const res = await createProduct({ name: newProductName.trim(), unit, baseCost: 0, currency: "CDF", status: "Active" });
+    setCreatingProduct(false);
+    if (res.ok && res.id) {
+      const created = { id: res.id, name: newProductName.trim(), unit };
+      setProducts((p) => [...p, created]);
+      setReceipts((p) => p.map((x, j) => j === rowIndex ? { ...x, productId: created.id } : x));
+      setNewProductRow(null); setNewProductName(""); setNewProductUnit("Piece"); setNewProductCustomUnit("");
+      toast("Product added", created.name);
+    } else {
+      toast("Could not add product", "Please try again", "err");
+    }
+  }
 
   async function submit() {
     setSaving(true);
@@ -110,25 +138,53 @@ export default function ReportWizard({ branches, fxRate }: { branches: Branch[];
                 <div className={`choice ${hasStock ? "sel" : ""}`} onClick={() => setHasStock(true)}><div className="big">Yes, stock came in</div><div className="sm">Record what arrived</div></div>
                 <div className={`choice ${!hasStock ? "sel" : ""}`} onClick={() => setHasStock(false)}><div className="big">No products</div><div className="sm">Skip to cash</div></div>
               </div>
-              {hasStock && (products.length === 0 ? (
-                <div className="notice" style={{ marginTop: 12 }}><Icon name="alert" className="ico" size={18} />
-                  <div>No products in the catalogue yet. Add them in <b>Products</b> first, then you can record stock here.</div></div>
-              ) : (
+              {hasStock && (
                 <div style={{ marginTop: 8 }}>
+                  {products.length === 0 && (
+                    <div className="notice" style={{ marginBottom: 12 }}><Icon name="info" className="ico" size={18} />
+                      <div>No products in the catalogue yet — add one below to get started.</div></div>
+                  )}
                   {receipts.map((r, i) => (
-                    <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 90px 1fr 30px", gap: 8, marginBottom: 8, alignItems: "center" }}>
-                      <select className="field" value={r.productId} onChange={(e) => setReceipts((p) => p.map((x, j) => j === i ? { ...x, productId: e.target.value } : x))}>
-                        <option value="">Select product…</option>
-                        {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                      </select>
-                      <input className="field num" placeholder="Qty" value={r.quantity} onChange={(e) => setReceipts((p) => p.map((x, j) => j === i ? { ...x, quantity: e.target.value } : x))} />
-                      <input className="field" placeholder="Supplier" value={r.supplier} onChange={(e) => setReceipts((p) => p.map((x, j) => j === i ? { ...x, supplier: e.target.value } : x))} />
-                      <button className="rm-line" onClick={() => setReceipts((p) => p.filter((_, j) => j !== i))}><Icon name="x" size={15} /></button>
+                    <div key={i}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 90px 1fr 30px", gap: 8, marginBottom: 8, alignItems: "center" }}>
+                        <select
+                          className="field"
+                          value={newProductRow === i ? "__new__" : r.productId}
+                          onChange={(e) => {
+                            if (e.target.value === "__new__") { setNewProductRow(i); return; }
+                            setNewProductRow((cur) => (cur === i ? null : cur));
+                            setReceipts((p) => p.map((x, j) => j === i ? { ...x, productId: e.target.value } : x));
+                          }}
+                        >
+                          <option value="">Select product…</option>
+                          {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                          <option value="__new__">+ Add new product…</option>
+                        </select>
+                        <input className="field num" placeholder="Qty" value={r.quantity} onChange={(e) => setReceipts((p) => p.map((x, j) => j === i ? { ...x, quantity: e.target.value } : x))} />
+                        <input className="field" placeholder="Supplier" value={r.supplier} onChange={(e) => setReceipts((p) => p.map((x, j) => j === i ? { ...x, supplier: e.target.value } : x))} />
+                        <button className="rm-line" onClick={() => { setReceipts((p) => p.filter((_, j) => j !== i)); if (newProductRow === i) setNewProductRow(null); }}><Icon name="x" size={15} /></button>
+                      </div>
+                      {newProductRow === i && (
+                        <div style={{ background: "var(--surface-2)", padding: 10, borderRadius: 10, marginBottom: 8 }}>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 140px auto auto", gap: 8, alignItems: "center" }}>
+                            <input className="field" placeholder="New product name" value={newProductName} onChange={(e) => setNewProductName(e.target.value)} autoFocus />
+                            <select className="field" value={newProductUnit} onChange={(e) => setNewProductUnit(e.target.value)}>
+                              {PRODUCT_UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+                              <option value={OTHER_UNIT}>Other…</option>
+                            </select>
+                            <button className="btn btn-primary" disabled={creatingProduct || !newProductName.trim()} onClick={() => createInlineProduct(i)}>{creatingProduct ? "Adding…" : "Add"}</button>
+                            <button className="btn" onClick={() => { setNewProductRow(null); setNewProductName(""); setNewProductUnit("Piece"); setNewProductCustomUnit(""); }}>Cancel</button>
+                          </div>
+                          {newProductUnit === OTHER_UNIT && (
+                            <input className="field" style={{ marginTop: 8 }} placeholder="Custom unit (e.g. Barrel)" value={newProductCustomUnit} onChange={(e) => setNewProductCustomUnit(e.target.value)} />
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                   <button className="add-line" onClick={() => setReceipts((p) => [...p, { productId: "", quantity: "", supplier: "", note: "" }])}><Icon name="plus" size={15} stroke={2.2} />Add another product</button>
                 </div>
-              ))}
+              )}
             </>
           )}
 

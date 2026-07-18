@@ -30,12 +30,12 @@ export default function Sidebar({ userName, role, pending, companyName, companyL
   const initials = userName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
   return (
     <aside className="sidebar">
-      <div className="brand">
+      <Link href="/" className="brand" title="Go to Dashboard">
         <div className="brand-mark" style={companyLogo ? { padding: 0, overflow: "hidden", background: "var(--surface-2)" } : undefined}>
           {companyLogo ? <img src={companyLogo} alt={companyName} style={{ width: "100%", height: "100%", objectFit: "contain" }} /> : "F"}
         </div>
         <div><div className="brand-name">Faraj&nbsp;OS</div><div className="brand-sub">Business Operating System</div></div>
-      </div>
+      </Link>
       <nav>
         {NAV.map((g) => {
           const items = g.items.filter((it) => permissions[it.module]?.view);
