@@ -1,5 +1,5 @@
 import { prisma } from "./db";
-import { getBranchComparison, getCashLedger, getOverallCashCollected, getAllTimeApprovedExpenses, getSupplierPaymentsTotal, startOfToday, dayStart, addDays } from "./metrics";
+import { getBranchComparison, getCashLedger, getOverallCashCollected, getAvailableCash, startOfToday, dayStart, addDays } from "./metrics";
 import { fmtDate } from "./format";
 
 export type ReportMeta = { slug: string; title: string; subtitle: string; color: string };
@@ -140,14 +140,14 @@ async function getReportSummaryMetrics(filters: ReportFilters): Promise<ReportSu
     transactionCount += 1;
   }
 
-  const [overallCash, allTimeExpenses, allTimePayments] = await Promise.all([
-    getOverallCashCollected(), getAllTimeApprovedExpenses(), getSupplierPaymentsTotal("all"),
-  ]);
+  // Delegates to getAvailableCash (lib/metrics.ts) rather than re-deriving the formula here —
+  // that function is the single canonical source for this figure everywhere in the app.
+  const overallCash = await getOverallCashCollected();
+  const availableCash = await getAvailableCash(overallCash);
 
   return {
     totalRevenueCdf: revenueCdf, totalRevenueUsd: revenueUsd,
-    totalAvailableCashCdf: overallCash.cashCdf - allTimeExpenses.cdf - allTimePayments.cdf,
-    totalAvailableCashUsd: overallCash.cashUsd - allTimeExpenses.usd - allTimePayments.usd,
+    totalAvailableCashCdf: availableCash.cdf, totalAvailableCashUsd: availableCash.usd,
     totalExpensesCdf: expCdf, totalExpensesUsd: expUsd,
     totalSupplierPaymentsCdf: paymentsCdf, totalSupplierPaymentsUsd: paymentsUsd,
     netCashPositionCdf: revenueCdf - expCdf - paymentsCdf, netCashPositionUsd: revenueUsd - expUsd - paymentsUsd,

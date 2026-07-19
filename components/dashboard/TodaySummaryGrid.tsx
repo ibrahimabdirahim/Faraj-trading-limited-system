@@ -1,4 +1,4 @@
-import { ClipboardList, Receipt, PackageCheck } from "lucide-react";
+import { ClipboardList, Receipt, PackageCheck, HandCoins } from "lucide-react";
 import { fmt } from "@/lib/format";
 
 function Card({ icon, iconBg, iconColor, label, children }: {
@@ -16,12 +16,13 @@ function Card({ icon, iconBg, iconColor, label, children }: {
 }
 
 export default function TodaySummaryGrid({
-  submitted, totalBranches, totals, expenseCount, productsReceived,
+  submitted, totalBranches, totals, expenseCount, productsReceived, supplierPayments,
 }: {
   submitted: number; totalBranches: number;
   totals: { cashCdf: number; cashUsd: number; expCdf: number; expUsd: number; profitCdf: number };
   expenseCount: number;
   productsReceived: { totalQty: number; productCount: number; deliveries: number };
+  supplierPayments: { cdf: number; usd: number };
 }) {
   const pending = Math.max(0, totalBranches - submitted);
 
@@ -35,6 +36,11 @@ export default function TodaySummaryGrid({
       <Card icon={<Receipt size={17} />} iconBg="var(--crit-soft)" iconColor="var(--crit)" label="Today's Expenses">
         <div className="kpi-val num">{fmt(totals.expCdf)}<span className="unit">CDF</span></div>
         <div className="kpi-second"><span className="sm">${fmt(totals.expUsd)} USD · {expenseCount} expense{expenseCount === 1 ? "" : "s"} recorded</span></div>
+      </Card>
+
+      <Card icon={<HandCoins size={17} />} iconBg="var(--warn-soft)" iconColor="var(--warn)" label="Today's Supplier Payments">
+        <div className="kpi-val num">{fmt(supplierPayments.cdf)}<span className="unit">CDF</span></div>
+        <div className="kpi-second"><span className="sm">${fmt(supplierPayments.usd)} USD approved today</span></div>
       </Card>
 
       <Card icon={<PackageCheck size={17} />} iconBg="var(--faraj-blue)" iconColor="#fff" label="Goods Received Today">

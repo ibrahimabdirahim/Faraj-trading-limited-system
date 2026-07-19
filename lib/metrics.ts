@@ -378,31 +378,33 @@ export async function getAllTimeApprovedExpenses(): Promise<{ cdf: number; usd: 
   return sumByCurrency(rows);
 }
 
-export type AvailableCash = { todayCdf: number; todayUsd: number; overallCdf: number; overallUsd: number };
+export type AvailableCash = { cdf: number; usd: number };
 
-// Available Cash = Total Cash Collected − Supplier Payments − Branch Expenses − Other Company
-// Expenses. "Other Company Expenses" has no input mechanism yet (no page requested for it),
-// so it's a reserved, hardcoded 0 here — deliberately named so it's easy to wire up later.
-// Takes `overallCash` as a parameter (rather than re-fetching it) since the dashboard page
-// already calls getOverallCashCollected() itself for the Total Cash Collected card.
-export async function getAvailableCash(
-  todayTotals: { cashCdf: number; cashUsd: number; expCdf: number; expUsd: number },
-  overallCash: { cashCdf: number; cashUsd: number }
-): Promise<AvailableCash> {
+// Available Cash — the company's current spendable cash. There is exactly ONE such figure;
+// it is NOT split into a "today" and an "overall" version the way Total Cash Collected is.
+//
+// Available Cash = Overall Cash Collected − every approved Supplier Payment ever − every
+// approved Expense ever. This is the closed-form equivalent of the day-by-day recursive
+// definition (previous Available Cash + today's collected − today's payments − today's
+// expenses) unrolled all the way back to day one: the running total telescopes down to
+// exactly "all cash collected minus all cash paid out," so computing it this way instead of
+// maintaining a running balance is deliberate, not a shortcut — same result, no stored state
+// that could drift out of sync with the underlying reports/payments/expenses.
+//
+// "Other Company Expenses" has no input mechanism yet (no page requested for it), so it's a
+// reserved, hardcoded 0 here — deliberately named so it's easy to wire up later.
+export async function getAvailableCash(overallCash: { cashCdf: number; cashUsd: number }): Promise<AvailableCash> {
   const OTHER_COMPANY_EXPENSES_CDF = 0;
   const OTHER_COMPANY_EXPENSES_USD = 0;
 
-  const [allTimeExpenses, todayPayments, allTimePayments] = await Promise.all([
+  const [allTimeExpenses, allTimePayments] = await Promise.all([
     getAllTimeApprovedExpenses(),
-    getSupplierPaymentsTotal("today"),
     getSupplierPaymentsTotal("all"),
   ]);
 
   return {
-    todayCdf: todayTotals.cashCdf - todayTotals.expCdf - todayPayments.cdf - OTHER_COMPANY_EXPENSES_CDF,
-    todayUsd: todayTotals.cashUsd - todayTotals.expUsd - todayPayments.usd - OTHER_COMPANY_EXPENSES_USD,
-    overallCdf: overallCash.cashCdf - allTimeExpenses.cdf - allTimePayments.cdf - OTHER_COMPANY_EXPENSES_CDF,
-    overallUsd: overallCash.cashUsd - allTimeExpenses.usd - allTimePayments.usd - OTHER_COMPANY_EXPENSES_USD,
+    cdf: overallCash.cashCdf - allTimeExpenses.cdf - allTimePayments.cdf - OTHER_COMPANY_EXPENSES_CDF,
+    usd: overallCash.cashUsd - allTimeExpenses.usd - allTimePayments.usd - OTHER_COMPANY_EXPENSES_USD,
   };
 }
 // ============================================================================
