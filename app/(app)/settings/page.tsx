@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
+import { getCurrentUser } from "@/lib/session";
+import { getCashResetPreview } from "@/app/actions";
 import { timeAgo } from "@/lib/format";
 import Icon from "@/components/shared/Icon";
 import SettingsForm from "@/components/settings/SettingsForm";
@@ -9,21 +11,27 @@ import AddBranchForm from "@/components/branches/AddBranchForm";
 import EditBranchForm from "@/components/branches/EditBranchForm";
 import LogoUpload from "@/components/settings/LogoUpload";
 import ChangePasswordForm from "@/components/settings/ChangePasswordForm";
+import CashResetPanel from "@/components/settings/CashResetPanel";
 
 export const dynamic = "force-dynamic";
 
-const NAV = [
-  ["#company", "Company & Currencies", "building"],
-  ["#branches", "Branches", "branch"],
-  ["#account", "My Account", "key"],
-  ["#backup", "Backup", "download"],
-  ["#audit", "Audit Logs", "report"],
-];
-
 export default async function SettingsPage() {
+  const user = await getCurrentUser();
+  const isSuperAdmin = user?.roleRef.key === "super_admin";
+
   const settings = await getSettings();
   const branches = await prisma.branch.findMany({ orderBy: { sortOrder: "asc" } });
   const logs = await prisma.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 12, include: { user: true } });
+  const resetPreview = isSuperAdmin ? await getCashResetPreview() : null;
+
+  const NAV = [
+    ["#company", "Company & Currencies", "building"],
+    ["#branches", "Branches", "branch"],
+    ["#account", "My Account", "key"],
+    ["#backup", "Backup", "download"],
+    ["#audit", "Audit Logs", "report"],
+    ...(isSuperAdmin ? [["#danger-zone", "Danger Zone", "alert"]] : []),
+  ];
 
   return (
     <>
@@ -82,6 +90,13 @@ export default async function SettingsPage() {
               </table></div>
             ) : <p style={{ fontSize: 13, color: "var(--muted)" }}>No activity logged yet.</p>}
           </section>
+
+          {isSuperAdmin && resetPreview && (
+            <section id="danger-zone" style={{ marginTop: 32 }}>
+              <h3 style={{ fontSize: 16, marginBottom: 8 }}>Danger Zone</h3>
+              <CashResetPanel preview={resetPreview} />
+            </section>
+          )}
         </div>
       </div>
     </>

@@ -640,3 +640,87 @@ export async function getSupplierDetailAction(supplierId: string) {
   await requirePermission("suppliers", "view");
   return getSupplierDetailData(supplierId);
 }
+
+// ============================================================================
+// FINANCIAL DATA RESET — Super Administrator only. Available Cash, Overall Cash
+// Collected, Today's Cash Collected, and the Cash Ledger are never stored; they're
+// always computed live from DailyReport + Expense + SupplierPayment (see
+// lib/metrics.ts). There is nothing to "reset" independently of those three tables —
+// this action deletes the real underlying records, and the computed figures read as
+// zero/empty as a direct consequence. Every Expense has a required (non-nullable)
+// reportId with onDelete: Cascade, so deleting Daily Reports always deletes their
+// Expenses too, regardless of whether "expenses" is separately selected.
+// ============================================================================
+
+export type CashResetScope = "reports" | "expenses" | "payments";
+
+async function requireSuperAdmin() {
+  const user = await requireUser();
+  if (user.roleRef.key !== "super_admin") throw new Error("Only the Super Administrator can perform this action.");
+  return user;
+}
+
+export async function getCashResetPreview(): Promise<{ reports: number; expenses: number; payments: number }> {
+  await requireSuperAdmin();
+  const [reports, expenses, payments] = await Promise.all([
+    prisma.dailyReport.count(),
+    prisma.expense.count(),
+    prisma.supplierPayment.count(),
+  ]);
+  return { reports, expenses, payments };
+}
+
+const RESET_CONFIRM_PHRASE = "RESET FINANCIAL DATA";
+
+export async function resetFinancialData(input: {
+  scopes: CashResetScope[];
+  confirmPhrase: string;
+  password: string;
+  reason?: string;
+}): Promise<{ ok: true; deletedReports: number; deletedExpenses: number; deletedPayments: number; totalDeleted: number } | { ok: false; error: string }> {
+  const user = await requireSuperAdmin();
+
+  const scopes = new Set(input.scopes);
+  if (scopes.size === 0) return { ok: false, error: "Select at least one category to reset." };
+  if (input.confirmPhrase !== RESET_CONFIRM_PHRASE) return { ok: false, error: `Type "${RESET_CONFIRM_PHRASE}" exactly to confirm.` };
+  const passwordOk = await bcrypt.compare(input.password, user.passwordHash);
+  if (!passwordOk) return { ok: false, error: "Password is incorrect." };
+
+  // Recomputed fresh here rather than trusting any count the client sent — this is what
+  // actually gets deleted and what goes in the audit log.
+  const resettingReports = scopes.has("reports");
+  const resettingExpenses = scopes.has("expenses") || resettingReports; // cascade makes these inseparable
+  const resettingPayments = scopes.has("payments");
+
+  const [reportsCount, expensesCount, paymentsCount] = await Promise.all([
+    resettingReports ? prisma.dailyReport.count() : Promise.resolve(0),
+    resettingExpenses ? prisma.expense.count() : Promise.resolve(0),
+    resettingPayments ? prisma.supplierPayment.count() : Promise.resolve(0),
+  ]);
+
+  await prisma.$transaction(async (tx) => {
+    if (resettingExpenses && !resettingReports) await tx.expense.deleteMany({});
+    if (resettingReports) await tx.dailyReport.deleteMany({}); // cascades Expense rows
+    if (resettingPayments) await tx.supplierPayment.deleteMany({});
+  });
+
+  const totalDeleted = reportsCount + expensesCount + paymentsCount;
+  const parts: string[] = [];
+  if (resettingReports) parts.push(`${reportsCount} daily report(s)`);
+  if (resettingExpenses) parts.push(`${expensesCount} expense(s)`);
+  if (resettingPayments) parts.push(`${paymentsCount} supplier payment(s)`);
+  const detail = `Deleted ${parts.join(", ")} — ${totalDeleted} record(s) total.${input.reason ? ` Reason: ${input.reason}` : ""}`;
+
+  await audit(user.id, "financial-reset", "FinancialData", detail);
+
+  revalidatePath("/");
+  revalidatePath("/reports-daily");
+  revalidatePath("/reports-daily/trash");
+  revalidatePath("/finance");
+  revalidatePath("/reports");
+  revalidatePath("/suppliers/payments");
+  revalidatePath("/suppliers/reports");
+  revalidatePath("/settings");
+
+  return { ok: true, deletedReports: reportsCount, deletedExpenses: expensesCount, deletedPayments: paymentsCount, totalDeleted };
+}
