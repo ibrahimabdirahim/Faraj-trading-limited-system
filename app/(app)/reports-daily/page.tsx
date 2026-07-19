@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/db";
 import { startOfToday } from "@/lib/metrics";
-import { getSettings } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/session";
 import { getEffectivePermissions } from "@/lib/permissions";
 import DailyReportsTable, { type DailyReportRow } from "@/components/daily-reports/DailyReportsTable";
@@ -9,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function DailyReportsPage() {
   const user = await getCurrentUser();
-  const [reports, branches, settings, permissions, trashedCount] = await Promise.all([
+  const [reports, branches, permissions, trashedCount] = await Promise.all([
     prisma.dailyReport.findMany({
       where: { deletedAt: null },
       orderBy: [{ date: "desc" }, { createdAt: "desc" }],
@@ -17,7 +16,6 @@ export default async function DailyReportsPage() {
       take: 300,
     }),
     prisma.branch.findMany({ where: { type: "branch", active: true }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true, manager: true } }),
-    getSettings(),
     user ? getEffectivePermissions(user.id) : null,
     prisma.dailyReport.count({ where: { NOT: { deletedAt: null } } }),
   ]);
@@ -52,7 +50,6 @@ export default async function DailyReportsPage() {
     <DailyReportsTable
       rows={rows}
       branches={branches}
-      fxRate={settings.fxRate}
       canEdit={permissions?.["daily-reports"]?.edit ?? false}
       canDelete={permissions?.["daily-reports"]?.delete ?? false}
       missing={missing}

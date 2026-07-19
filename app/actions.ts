@@ -582,6 +582,8 @@ export type SupplierPaymentUpdateInput = SupplierPaymentInput & { id: string };
 export async function updateSupplierPayment(input: SupplierPaymentUpdateInput) {
   const user = await requirePermission("suppliers", "edit");
   if (!input.amount) return { ok: false, error: "Amount is required." };
+  const existing = await prisma.supplierPayment.findUnique({ where: { id: input.id } });
+  if (existing?.locked) return { ok: false, error: "This payment is approved and locked. Unapprove it first to make changes." };
   const p = await prisma.supplierPayment.update({
     where: { id: input.id },
     data: { date: new Date(input.date + "T00:00:00"), amount: input.amount, currency: input.currency || "CDF", method: input.method || "Cash", referenceNumber: input.referenceNumber || "", notes: input.notes || "" },
@@ -597,8 +599,38 @@ export async function deleteSupplierPayment(id: string) {
   const user = await requirePermission("suppliers", "delete");
   const p = await prisma.supplierPayment.findUnique({ where: { id }, include: { supplier: true } });
   if (!p) return { ok: false, error: "Payment not found." };
+  if (p.locked) return { ok: false, error: "This payment is approved and locked. Unapprove it first to delete." };
   await prisma.supplierPayment.delete({ where: { id } });
   await audit(user.id, "delete", "SupplierPayment", `${p.supplier.name} · ${p.currency} ${p.amount}`);
+  revalidateSuppliers();
+  revalidatePath("/finance");
+  return { ok: true };
+}
+
+// Approving a payment is what actually deducts it from Available Cash / Outstanding Balance
+// (see getSupplierPaymentsTotal / getSuppliersWithBalances) — recording one only puts it in
+// the pending queue. Mirrors approveReport/unlockReport's status+locked+approvedAt pattern.
+export async function approveSupplierPayment(id: string) {
+  const user = await requirePermission("suppliers", "approve");
+  const p = await prisma.supplierPayment.update({
+    where: { id },
+    data: { status: "approved", locked: true, approvedAt: new Date() },
+    include: { supplier: true },
+  });
+  await audit(user.id, "approve", "SupplierPayment", `${p.supplier.name} · ${p.currency} ${p.amount}`);
+  revalidateSuppliers();
+  revalidatePath("/finance");
+  return { ok: true };
+}
+
+export async function unapproveSupplierPayment(id: string) {
+  const user = await requirePermission("suppliers", "edit");
+  const p = await prisma.supplierPayment.update({
+    where: { id },
+    data: { status: "pending", locked: false, approvedAt: null },
+    include: { supplier: true },
+  });
+  await audit(user.id, "unapprove", "SupplierPayment", `${p.supplier.name} · ${p.currency} ${p.amount}`);
   revalidateSuppliers();
   revalidatePath("/finance");
   return { ok: true };

@@ -34,7 +34,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="content">{children}</div>
       </div>
       <ToastHost />
-      <ReportWizard branches={branches} fxRate={settings.fxRate} />
+      <ReportWizard branches={branches} />
       <IdleTimeoutMonitor />
     </div>
   );

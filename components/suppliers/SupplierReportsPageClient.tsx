@@ -10,9 +10,11 @@ const EMPTY: ReportFilterState = { from: "", to: "", branchId: "", supplierId: "
 export default function SupplierReportsPageClient({
   reports,
   suppliers,
+  branches,
 }: {
   reports: { slug: string; title: string; subtitle: string; color: string }[];
   suppliers: { id: string; name: string }[];
+  branches: { id: string; name: string }[];
 }) {
   const [filters, setFilters] = useState<ReportFilterState>(EMPTY);
   const active = Object.values(filters).some(Boolean);
@@ -39,6 +41,21 @@ export default function SupplierReportsPageClient({
             <select className="field" value={filters.supplierId} onChange={(e) => setFilters({ ...filters, supplierId: e.target.value })}>
               <option value="">All suppliers</option>
               {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+          <div className="fg" style={{ minWidth: 160 }}>
+            <label className="field-label">Branch</label>
+            <select className="field" value={filters.branchId} onChange={(e) => setFilters({ ...filters, branchId: e.target.value })}>
+              <option value="">All branches</option>
+              {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+          </div>
+          <div className="fg" style={{ minWidth: 140 }}>
+            <label className="field-label">Status</label>
+            <select className="field" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
+              <option value="">Any status</option>
+              <option value="approved">Approved</option>
+              <option value="pending">Pending</option>
             </select>
           </div>
           <div className="fg" style={{ minWidth: 140 }}>

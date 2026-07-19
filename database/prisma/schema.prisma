@@ -304,6 +304,9 @@ model SupplierPayment {
   method          String   @default("Cash") // Cash | Bank Transfer | Mobile Money | Cheque | Other
   referenceNumber String   @default("")
   notes           String   @default("")
+  status          String   @default("pending") // pending | approved
+  locked          Boolean  @default(false)
+  approvedAt      DateTime?
   createdById     String?
   createdBy       User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
   createdAt       DateTime @default(now())

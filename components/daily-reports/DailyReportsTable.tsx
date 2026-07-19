@@ -25,11 +25,10 @@ export type DailyReportRow = {
 };
 
 export default function DailyReportsTable({
-  rows, branches, fxRate, canEdit, canDelete, missing, pendingToday, trashedCount,
+  rows, branches, canEdit, canDelete, missing, pendingToday, trashedCount,
 }: {
   rows: DailyReportRow[];
   branches: { id: string; name: string; manager: string }[];
-  fxRate: number;
   canEdit: boolean;
   canDelete: boolean;
   missing: number;
@@ -118,18 +117,16 @@ export default function DailyReportsTable({
         <div className="card table-wrap">
           <table>
             <thead><tr>
-              <th>Report #</th><th>Date</th><th>Branch</th><th>Revenue</th><th>Cash CDF</th><th>Cash USD</th><th>Expenses</th><th>Profit</th><th>Status</th><th>Created By</th><th></th>
+              <th>Report #</th><th>Date</th><th>Branch</th><th>Cash CDF</th><th>Cash USD</th><th>Expenses</th><th>Profit</th><th>Status</th><th>Created By</th><th></th>
             </tr></thead>
             <tbody>
               {filtered.map((r) => {
-                const revenue = r.cashCdf + r.cashUsd * fxRate;
                 const profit = r.cashCdf - r.expCdf;
                 return (
                   <tr key={r.id}>
                     <td className="t-sub" style={{ fontFamily: "var(--mono)" }}>{reportNumber(r.branchName, r.date)}</td>
                     <td className="num">{fmtDate(r.date)}</td>
                     <td><div className="t-name">{r.branchName}</div><div className="t-sub">{r.branchManager}</div></td>
-                    <td className="num">{fmt(Math.round(revenue))} FC</td>
                     <td className="num">{fmt(r.cashCdf)}</td>
                     <td className="num">{r.cashUsd ? "$" + fmt(r.cashUsd) : "—"}</td>
                     <td className="num">{r.expCdf ? fmt(r.expCdf) + " FC" : "—"}{r.expUsd ? " + $" + fmt(r.expUsd) : ""}</td>

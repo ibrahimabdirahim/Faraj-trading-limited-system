@@ -201,6 +201,23 @@ export async function getTodayExpenseCount(): Promise<number> {
   return prisma.expense.count({ where: { report: { date: today, deletedAt: null } } });
 }
 
+// ============================================================================
+// CASH CALCULATION SERVICE — the single, canonical source for every cash figure
+// shown anywhere in the app (dashboard cards, reports, exports). Nothing outside
+// this block should independently re-derive Overall Cash Collected or Available
+// Cash — always call these functions instead, so there is exactly one place that
+// can ever be wrong.
+//
+// Two distinct figures, never to be confused:
+//   - Overall Cash Collected Since System Started (getOverallCashCollected): a
+//     pure, historical sum of approved Daily Report revenue. It ONLY grows, as
+//     new reports are approved. Expenses, purchases, and supplier payments must
+//     NEVER be subtracted from it, anywhere, under any circumstance.
+//   - Available Cash (getAvailableCash): current spendable cash. Computed FROM
+//     Overall Cash Collected, minus approved supplier payments and approved
+//     expenses — this is the only figure money leaving the business reduces.
+// ============================================================================
+
 // All-time cash collected across every approved (locked) report on record — the "Overall"
 // half of the dashboard's cash card. Pending/missing reports don't count as collected yet,
 // and soft-deleted reports are excluded like everywhere else.
@@ -316,7 +333,8 @@ export async function getSuppliersWithBalances(): Promise<SupplierBalance[]> {
   });
   return suppliers.map((s) => {
     const purchased = sumByCurrency(s.purchases);
-    const paid = sumByCurrency(s.payments);
+    // Only approved payments reduce the balance — a pending payment doesn't count until approved.
+    const paid = sumByCurrency(s.payments.filter((p) => p.status === "approved"));
     const lastPurchase = s.purchases.reduce<Date | null>((latest, p) => (!latest || p.date > latest ? p.date : latest), null);
     return {
       id: s.id, name: s.name, company: s.company, contactPerson: s.contactPerson, phone: s.phone, status: s.status, notes: s.notes,
@@ -330,7 +348,7 @@ export type SupplierDetail = {
   id: string; name: string; company: string; contactPerson: string; phone: string; status: string; notes: string;
   balanceCdf: number; balanceUsd: number;
   purchases: { id: string; date: Date; invoiceNumber: string; totalAmount: number; currency: string; notes: string }[];
-  payments: { id: string; date: Date; amount: number; currency: string; method: string; referenceNumber: string; notes: string }[];
+  payments: { id: string; date: Date; amount: number; currency: string; method: string; referenceNumber: string; notes: string; status: string; locked: boolean }[];
   goodsReceipts: { id: string; date: Date; branchName: string; note: string; lines: { productName: string; quantity: number }[] }[];
 };
 
@@ -345,20 +363,22 @@ export async function getSupplierDetail(supplierId: string): Promise<SupplierDet
   });
   if (!s) return null;
   const purchased = sumByCurrency(s.purchases);
-  const paid = sumByCurrency(s.payments);
+  // Only approved payments reduce the balance — pending ones still show in history below.
+  const paid = sumByCurrency(s.payments.filter((p) => p.status === "approved"));
   return {
     id: s.id, name: s.name, company: s.company, contactPerson: s.contactPerson, phone: s.phone, status: s.status, notes: s.notes,
     balanceCdf: purchased.cdf - paid.cdf, balanceUsd: purchased.usd - paid.usd,
     purchases: s.purchases.map((p) => ({ id: p.id, date: p.date, invoiceNumber: p.invoiceNumber, totalAmount: p.totalAmount, currency: p.currency, notes: p.notes })),
-    payments: s.payments.map((p) => ({ id: p.id, date: p.date, amount: p.amount, currency: p.currency, method: p.method, referenceNumber: p.referenceNumber, notes: p.notes })),
+    payments: s.payments.map((p) => ({ id: p.id, date: p.date, amount: p.amount, currency: p.currency, method: p.method, referenceNumber: p.referenceNumber, notes: p.notes, status: p.status, locked: p.locked })),
     goodsReceipts: s.goodsReceipts.map((g) => ({ id: g.id, date: g.date, branchName: g.branch.name, note: g.note, lines: g.receipts.map((r) => ({ productName: r.product.name, quantity: r.quantity })) })),
   };
 }
 
 // Total supplier payments in a scope — "today" for the dashboard's Today figure, "all" for
-// Overall. Used to deduct from Total Cash Collected when computing Available Cash.
+// Overall. Used to deduct from Total Cash Collected when computing Available Cash. Only
+// *approved* payments count — a pending payment hasn't actually left the till yet.
 export async function getSupplierPaymentsTotal(scope: "today" | "all"): Promise<{ cdf: number; usd: number }> {
-  const where = scope === "today" ? { date: startOfToday() } : {};
+  const where = { status: "approved", ...(scope === "today" ? { date: startOfToday() } : {}) };
   const rows = await prisma.supplierPayment.findMany({ where, select: { amount: true, currency: true } });
   return sumByCurrency(rows);
 }
@@ -400,4 +420,63 @@ export async function getAvailableCash(
     overallCdf: overallCash.cashCdf - allTimeExpenses.cdf - allTimePayments.cdf - OTHER_COMPANY_EXPENSES_CDF,
     overallUsd: overallCash.cashUsd - allTimeExpenses.usd - allTimePayments.usd - OTHER_COMPANY_EXPENSES_USD,
   };
+}
+// ============================================================================
+// END CASH CALCULATION SERVICE
+// ============================================================================
+
+// ---- Cash Ledger ----
+
+export type CashLedgerRow = {
+  date: Date; type: "Revenue" | "Expense" | "Supplier Payment"; description: string;
+  inCdf: number; outCdf: number; inUsd: number; outUsd: number;
+  balanceCdf: number; balanceUsd: number;
+};
+
+// A chronological "cash book" combining every cash-affecting event on record — approved Daily
+// Report revenue, expenses on approved reports, and approved Supplier Payments — with a running
+// balance. Deliberately live-computed rather than a stored ledger table: approving/unapproving a
+// payment or a report immediately changes what shows up here next time it's generated, with no
+// separate write path that could fall out of sync (same philosophy as Outstanding Balance and
+// Available Cash elsewhere in this file). `branchId` narrows the revenue/expense side;
+// `supplierId` narrows the payments side — the two dimensions don't overlap in the schema.
+export async function getCashLedger(filters: { from?: Date; to?: Date; branchId?: string; supplierId?: string }): Promise<CashLedgerRow[]> {
+  const dateWhere = filters.from && filters.to ? { date: { gte: filters.from, lt: filters.to } } : {};
+
+  const reports = await prisma.dailyReport.findMany({
+    where: { status: "approved", deletedAt: null, ...dateWhere, ...(filters.branchId ? { branchId: filters.branchId } : {}) },
+    include: { branch: true, expenses: true },
+  });
+  const payments = await prisma.supplierPayment.findMany({
+    where: { status: "approved", ...dateWhere, ...(filters.supplierId ? { supplierId: filters.supplierId } : {}) },
+    include: { supplier: true },
+  });
+
+  type RawEntry = Omit<CashLedgerRow, "balanceCdf" | "balanceUsd">;
+  const entries: RawEntry[] = [];
+
+  for (const r of reports) {
+    entries.push({ date: r.date, type: "Revenue", description: `${r.branch.name} — Daily Report`, inCdf: r.cashCdf, outCdf: 0, inUsd: r.cashUsd, outUsd: 0 });
+    for (const e of r.expenses) {
+      entries.push({
+        date: r.date, type: "Expense", description: e.description || "Expense",
+        inCdf: 0, outCdf: e.currency === "CDF" ? e.amount : 0, inUsd: 0, outUsd: e.currency === "USD" ? e.amount : 0,
+      });
+    }
+  }
+  for (const p of payments) {
+    entries.push({
+      date: p.date, type: "Supplier Payment", description: `${p.supplier.name} — ${p.method}`,
+      inCdf: 0, outCdf: p.currency === "CDF" ? p.amount : 0, inUsd: 0, outUsd: p.currency === "USD" ? p.amount : 0,
+    });
+  }
+
+  entries.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  let balanceCdf = 0, balanceUsd = 0;
+  return entries.map((e) => {
+    balanceCdf += e.inCdf - e.outCdf;
+    balanceUsd += e.inUsd - e.outUsd;
+    return { ...e, balanceCdf, balanceUsd };
+  });
 }

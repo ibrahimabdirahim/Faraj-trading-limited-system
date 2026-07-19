@@ -53,7 +53,7 @@ export const ROLE_DEFAULTS: Record<RoleKey, Partial<Record<Module, readonly Acti
     "reports": ["view", "export", "print"],
     "products": ["view"],
     "inventory": ["view"],
-    "suppliers": ["view", "create", "edit", "export", "print"],
+    "suppliers": ["view", "create", "edit", "approve", "export", "print"],
   },
   inventory_officer: {
     "dashboard": ["view"],

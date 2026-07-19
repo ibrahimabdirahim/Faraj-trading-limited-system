@@ -6,15 +6,21 @@ import { toast } from "@/lib/toast";
 
 const parseNum = (s: string) => Number(String(s).replace(/[^0-9.]/g, "")) || 0;
 
-export default function SettingsForm({ initial }: { initial: { companyName: string; fxRate: number; primaryCurrency: string; rounding: string } }) {
+export default function SettingsForm({ initial }: { initial: { companyName: string; companyAddress: string; companyPhone: string; companyEmail: string; fxRate: number; primaryCurrency: string; rounding: string } }) {
   const router = useRouter();
-  const [f, setF] = useState({ companyName: initial.companyName, fxRate: String(initial.fxRate), primaryCurrency: initial.primaryCurrency, rounding: initial.rounding });
+  const [f, setF] = useState({
+    companyName: initial.companyName, companyAddress: initial.companyAddress, companyPhone: initial.companyPhone, companyEmail: initial.companyEmail,
+    fxRate: String(initial.fxRate), primaryCurrency: initial.primaryCurrency, rounding: initial.rounding,
+  });
   const [saving, setSaving] = useState(false);
   const set = (k: string, v: string) => setF((p) => ({ ...p, [k]: v }));
 
   async function save() {
     setSaving(true);
-    const res = await updateSettings({ companyName: f.companyName, fxRate: String(parseNum(f.fxRate)), primaryCurrency: f.primaryCurrency, rounding: f.rounding });
+    const res = await updateSettings({
+      companyName: f.companyName, companyAddress: f.companyAddress, companyPhone: f.companyPhone, companyEmail: f.companyEmail,
+      fxRate: String(parseNum(f.fxRate)), primaryCurrency: f.primaryCurrency, rounding: f.rounding,
+    });
     setSaving(false);
     if (res.ok) { toast("Settings saved", "Currency & company updated"); router.refresh(); }
   }
@@ -25,6 +31,12 @@ export default function SettingsForm({ initial }: { initial: { companyName: stri
       <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 8px" }}>Every figure is tracked in both CDF and USD. The exchange rate is used only for combined display totals.</p>
       <div className="set-row"><div className="info"><h4>Company name</h4><p>Shown on reports and exports</p></div>
         <input className="field" style={{ maxWidth: 240 }} value={f.companyName} onChange={(e) => set("companyName", e.target.value)} /></div>
+      <div className="set-row"><div className="info"><h4>Company address</h4><p>Shown in the header of every report</p></div>
+        <input className="field" style={{ maxWidth: 280 }} value={f.companyAddress} onChange={(e) => set("companyAddress", e.target.value)} placeholder="e.g. Avenue Kasavubu, Kolwezi, DRC" /></div>
+      <div className="set-row"><div className="info"><h4>Phone number</h4><p>Shown in the header of every report</p></div>
+        <input className="field" style={{ maxWidth: 200 }} value={f.companyPhone} onChange={(e) => set("companyPhone", e.target.value)} placeholder="+243 …" /></div>
+      <div className="set-row"><div className="info"><h4>Email</h4><p>Shown in the header of every report</p></div>
+        <input className="field" style={{ maxWidth: 240 }} type="email" value={f.companyEmail} onChange={(e) => set("companyEmail", e.target.value)} placeholder="info@faraj.cd" /></div>
       <div className="set-row"><div className="info"><h4>Base currencies</h4><p>Always recorded separately — no automatic mixing</p></div>
         <span className="prod-cat" style={{ color: "var(--cdf)", borderColor: "var(--cdf)", background: "var(--cdf-soft)" }}>CDF</span>
         <span className="prod-cat" style={{ color: "var(--usd)", borderColor: "var(--usd)", background: "var(--usd-soft)" }}>USD</span></div>

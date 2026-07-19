@@ -5,6 +5,9 @@ import ReportsPageClient from "@/components/reports/ReportsPageClient";
 export const dynamic = "force-dynamic";
 
 export default async function ReportsPage() {
-  const branches = await prisma.branch.findMany({ where: { type: "branch", active: true }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true } });
-  return <ReportsPageClient reports={REPORTS} branches={branches} />;
+  const [branches, suppliers] = await Promise.all([
+    prisma.branch.findMany({ where: { type: "branch", active: true }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true } }),
+    prisma.supplier.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+  ]);
+  return <ReportsPageClient reports={REPORTS} branches={branches} suppliers={suppliers} />;
 }

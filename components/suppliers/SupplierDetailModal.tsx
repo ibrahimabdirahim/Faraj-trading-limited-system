@@ -49,7 +49,10 @@ export default function SupplierDetailModal({ supplierId, onClose }: { supplierI
               ) : (
                 <div className="review-block">
                   {detail.payments.map((p) => (
-                    <div className="review-line" key={p.id}><span className="rl">{fmtDate(p.date)} · {p.method}</span><span className="rv num">{p.currency === "USD" ? "$" : ""}{fmt(p.amount)}{p.currency === "CDF" ? " FC" : ""}</span></div>
+                    <div className="review-line" key={p.id}>
+                      <span className="rl">{fmtDate(p.date)} · {p.method} <span className={`status ${p.status === "approved" ? "locked" : "pending"}`} style={{ marginLeft: 6 }}><i />{p.status === "approved" ? "Approved" : "Pending"}</span></span>
+                      <span className="rv num">{p.currency === "USD" ? "$" : ""}{fmt(p.amount)}{p.currency === "CDF" ? " FC" : ""}</span>
+                    </div>
                   ))}
                 </div>
               )}

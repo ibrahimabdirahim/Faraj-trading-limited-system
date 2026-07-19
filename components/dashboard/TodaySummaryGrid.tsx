@@ -1,4 +1,4 @@
-import { ClipboardCheck, ClipboardList, Receipt, TrendingUp, PackageCheck } from "lucide-react";
+import { ClipboardList, Receipt, PackageCheck } from "lucide-react";
 import { fmt } from "@/lib/format";
 
 function Card({ icon, iconBg, iconColor, label, children }: {
@@ -24,16 +24,9 @@ export default function TodaySummaryGrid({
   productsReceived: { totalQty: number; productCount: number; deliveries: number };
 }) {
   const pending = Math.max(0, totalBranches - submitted);
-  const progressPct = totalBranches ? Math.round((submitted / totalBranches) * 100) : 0;
 
   return (
     <div className="kpi-grid-v2">
-      <Card icon={<ClipboardCheck size={17} />} iconBg="var(--good-soft)" iconColor="var(--good)" label="Reports Submitted Today">
-        <div className="kpi-val num">{submitted}<span className="unit">of {totalBranches}</span></div>
-        <div className="bc-progress-track" style={{ marginTop: 8 }}><div className="bc-progress-fill" style={{ width: `${progressPct}%` }} /></div>
-        <div className="kpi-second" style={{ marginTop: 6 }}><span className="sm">{pending > 0 ? `${pending} pending` : "All branches in"}</span></div>
-      </Card>
-
       <Card icon={<ClipboardList size={17} />} iconBg="var(--warn-soft)" iconColor="var(--warn)" label="Pending Reports">
         <div className="kpi-val num">{pending}</div>
         <div className="kpi-second"><span className="sm">{pending > 0 ? "awaiting submission" : "nothing outstanding"}</span></div>
@@ -42,11 +35,6 @@ export default function TodaySummaryGrid({
       <Card icon={<Receipt size={17} />} iconBg="var(--crit-soft)" iconColor="var(--crit)" label="Today's Expenses">
         <div className="kpi-val num">{fmt(totals.expCdf)}<span className="unit">CDF</span></div>
         <div className="kpi-second"><span className="sm">${fmt(totals.expUsd)} USD · {expenseCount} expense{expenseCount === 1 ? "" : "s"} recorded</span></div>
-      </Card>
-
-      <Card icon={<TrendingUp size={17} />} iconBg="var(--brand-soft)" iconColor="var(--brand-2)" label="Today's Profit">
-        <div className="kpi-val num">{fmt(totals.profitCdf)}<span className="unit">CDF</span></div>
-        <div className="kpi-second"><span className="sm">revenue minus expenses</span></div>
       </Card>
 
       <Card icon={<PackageCheck size={17} />} iconBg="var(--faraj-blue)" iconColor="#fff" label="Goods Received Today">

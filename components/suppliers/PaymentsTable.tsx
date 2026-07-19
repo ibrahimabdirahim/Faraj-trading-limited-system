@@ -3,13 +3,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/shared/Icon";
 import { toast } from "@/lib/toast";
-import { deleteSupplierPayment } from "@/app/actions";
+import { deleteSupplierPayment, approveSupplierPayment, unapproveSupplierPayment } from "@/app/actions";
 import { fmt, fmtDate } from "@/lib/format";
 import PaySupplierForm from "./PaySupplierForm";
 
 export type PaymentRow = {
   id: string; supplierId: string; supplierName: string; date: Date; amount: number; currency: string;
-  method: string; referenceNumber: string; notes: string; createdByName: string;
+  method: string; referenceNumber: string; notes: string; createdByName: string; status: string; locked: boolean;
 };
 
 function RowActions({ row, suppliers }: { row: PaymentRow; suppliers: { id: string; name: string; balanceCdf: number; balanceUsd: number }[] }) {
@@ -24,10 +24,31 @@ function RowActions({ row, suppliers }: { row: PaymentRow; suppliers: { id: stri
     if (res.ok) { setConfirmDelete(false); toast("Payment deleted", row.supplierName); router.refresh(); }
   }
 
+  async function doApprove() {
+    setBusy(true);
+    const res = await approveSupplierPayment(row.id);
+    setBusy(false);
+    if (res.ok) { toast("Payment approved", `${row.supplierName} · Available Cash updated`); router.refresh(); }
+  }
+
+  async function doUnapprove() {
+    setBusy(true);
+    const res = await unapproveSupplierPayment(row.id);
+    setBusy(false);
+    if (res.ok) { toast("Payment unapproved", `${row.supplierName} back to pending`); router.refresh(); }
+  }
+
   return (
     <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
-      <PaySupplierForm suppliers={suppliers} payment={{ id: row.id, supplierId: row.supplierId, date: row.date.toISOString().slice(0, 10), amount: row.amount, currency: row.currency, method: row.method, referenceNumber: row.referenceNumber, notes: row.notes }} />
-      <button className="icon-btn" title="Delete" aria-label="Delete" onClick={() => setConfirmDelete(true)}><Icon name="trash" size={15} /></button>
+      {row.status === "pending" && <button className="icon-btn" title="Approve" aria-label="Approve" disabled={busy} onClick={doApprove}><Icon name="check" size={15} /></button>}
+      {row.locked ? (
+        <button className="icon-btn" title="Unapprove to edit/delete" aria-label="Unapprove" disabled={busy} onClick={doUnapprove}><Icon name="unlock" size={15} /></button>
+      ) : (
+        <>
+          <PaySupplierForm suppliers={suppliers} payment={{ id: row.id, supplierId: row.supplierId, date: row.date.toISOString().slice(0, 10), amount: row.amount, currency: row.currency, method: row.method, referenceNumber: row.referenceNumber, notes: row.notes }} />
+          <button className="icon-btn" title="Delete" aria-label="Delete" onClick={() => setConfirmDelete(true)}><Icon name="trash" size={15} /></button>
+        </>
+      )}
       {confirmDelete && (
         <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) setConfirmDelete(false); }}>
           <div className="modal" style={{ maxWidth: 420 }}>
@@ -55,7 +76,7 @@ export default function PaymentsTable({ rows, suppliers }: { rows: PaymentRow[];
   return (
     <div className="card table-wrap">
       <table>
-        <thead><tr><th>Date</th><th>Supplier</th><th>Amount</th><th>Currency</th><th>Method</th><th>Reference</th><th>Recorded By</th><th></th></tr></thead>
+        <thead><tr><th>Date</th><th>Supplier</th><th>Amount</th><th>Currency</th><th>Method</th><th>Reference</th><th>Status</th><th>Recorded By</th><th></th></tr></thead>
         <tbody>
           {rows.map((r) => (
             <tr key={r.id}>
@@ -65,6 +86,7 @@ export default function PaymentsTable({ rows, suppliers }: { rows: PaymentRow[];
               <td className="t-sub">{r.currency}</td>
               <td className="t-sub">{r.method}</td>
               <td className="t-sub">{r.referenceNumber || "—"}</td>
+              <td><span className={`status ${r.status === "approved" ? "locked" : "pending"}`}><i />{r.status === "approved" ? "Approved" : "Pending"}</span></td>
               <td className="t-sub">{r.createdByName}</td>
               <td><RowActions row={r} suppliers={suppliers} /></td>
             </tr>

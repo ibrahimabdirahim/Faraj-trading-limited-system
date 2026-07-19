@@ -18,6 +18,7 @@ export default async function PaymentsPage() {
   const rows: PaymentRow[] = payments.map((p) => ({
     id: p.id, supplierId: p.supplierId, supplierName: p.supplier.name, date: p.date, amount: p.amount, currency: p.currency,
     method: p.method, referenceNumber: p.referenceNumber, notes: p.notes, createdByName: p.createdBy?.name ?? "—",
+    status: p.status, locked: p.locked,
   }));
   const activeSuppliers = suppliers.filter((s) => s.status === "Active");
 

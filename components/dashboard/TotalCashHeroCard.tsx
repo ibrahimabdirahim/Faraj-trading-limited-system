@@ -31,6 +31,10 @@ export default function TotalCashHeroCard({
         </div>
       </div>
 
+      {/* This figure is purely a sum of approved Daily Report revenue — it only ever grows as
+          new reports are submitted, and is never reduced by expenses or supplier payments
+          (see getOverallCashCollected in lib/metrics.ts). Shown here so it can be visually
+          compared against Available Cash below, which *does* fall as money goes out. */}
       <div className="cash-hero-section overall">
         <div className="cash-hero-label">Overall · since system started</div>
         <div className="cash-hero-grid">

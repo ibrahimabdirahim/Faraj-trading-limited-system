@@ -40,7 +40,7 @@ export default async function DashboardPage() {
       <div className="cash-rank-row" style={{ marginTop: 16 }}>
         <div className="cash-hero-stack">
           <TotalCashHeroCard todayCdf={totals.cashCdf} todayUsd={totals.cashUsd} overallCdf={overall.cashCdf} overallUsd={overall.cashUsd} />
-          <AvailableCashCard todayCdf={availableCash.todayCdf} todayUsd={availableCash.todayUsd} overallCdf={availableCash.overallCdf} overallUsd={availableCash.overallUsd} />
+          <AvailableCashCard todayCdf={availableCash.todayCdf} todayUsd={availableCash.todayUsd} />
         </div>
         <BranchRankingPanel rows={comparisonRows} />
       </div>

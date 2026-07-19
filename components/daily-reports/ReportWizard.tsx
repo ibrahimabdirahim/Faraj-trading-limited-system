@@ -16,7 +16,7 @@ const STEP_LABELS = ["Setup", "Stock In", "Cash", "Expenses", "Review"];
 const parseNum = (s: string) => Number(String(s).replace(/[^0-9.]/g, "")) || 0;
 const today = () => new Date().toISOString().slice(0, 10);
 
-export default function ReportWizard({ branches, fxRate }: { branches: Branch[]; fxRate: number }) {
+export default function ReportWizard({ branches }: { branches: Branch[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
@@ -38,11 +38,15 @@ export default function ReportWizard({ branches, fxRate }: { branches: Branch[];
   const [newProductCustomUnit, setNewProductCustomUnit] = useState("");
   const [creatingProduct, setCreatingProduct] = useState(false);
 
+  const [openPickerRow, setOpenPickerRow] = useState<number | null>(null);
+  const [pickerQuery, setPickerQuery] = useState("");
+
   const reset = useCallback(() => {
     setStep(0); setBranchId(branches[0]?.id ?? ""); setDate(today());
     setNote(""); setHasStock(false); setReceipts([{ productId: "", quantity: "", supplier: "", note: "" }]);
     setCashCdf(""); setCashUsd(""); setExpenses([{ description: "", amount: "", currency: "CDF" }]);
     setNewProductRow(null); setNewProductName(""); setNewProductUnit("Piece"); setNewProductCustomUnit("");
+    setOpenPickerRow(null); setPickerQuery("");
   }, [branches]);
 
   useEffect(() => {
@@ -59,7 +63,6 @@ export default function ReportWizard({ branches, fxRate }: { branches: Branch[];
 
   if (!open) return null;
 
-  const combined = parseNum(cashCdf) + parseNum(cashUsd) * fxRate;
   const branch = branches.find((b) => b.id === branchId);
   const expTotalCdf = expenses.filter((e) => e.currency === "CDF").reduce((a, e) => a + parseNum(e.amount), 0);
   const expTotalUsd = expenses.filter((e) => e.currency === "USD").reduce((a, e) => a + parseNum(e.amount), 0);
@@ -144,26 +147,42 @@ export default function ReportWizard({ branches, fxRate }: { branches: Branch[];
                     <div className="notice" style={{ marginBottom: 12 }}><Icon name="info" className="ico" size={18} />
                       <div>No products in the catalogue yet — add one below to get started.</div></div>
                   )}
-                  {receipts.map((r, i) => (
+                  {receipts.map((r, i) => {
+                    const selectedName = products.find((p) => p.id === r.productId)?.name ?? "";
+                    const pickerOpen = openPickerRow === i;
+                    const filteredProducts = products.filter((p) => p.name.toLowerCase().includes(pickerQuery.trim().toLowerCase()));
+                    return (
                     <div key={i}>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 90px 1fr 30px", gap: 8, marginBottom: 8, alignItems: "center" }}>
-                        <select
+                        <input
                           className="field"
-                          value={newProductRow === i ? "__new__" : r.productId}
-                          onChange={(e) => {
-                            if (e.target.value === "__new__") { setNewProductRow(i); return; }
-                            setNewProductRow((cur) => (cur === i ? null : cur));
-                            setReceipts((p) => p.map((x, j) => j === i ? { ...x, productId: e.target.value } : x));
-                          }}
-                        >
-                          <option value="">Select product…</option>
-                          {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                          <option value="__new__">+ Add new product…</option>
-                        </select>
+                          placeholder="Search product…"
+                          value={pickerOpen ? pickerQuery : selectedName}
+                          onFocus={() => { setOpenPickerRow(i); setPickerQuery(""); }}
+                          onChange={(e) => setPickerQuery(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Escape") { setOpenPickerRow(null); (e.target as HTMLInputElement).blur(); } }}
+                          onBlur={() => setOpenPickerRow((cur) => (cur === i ? null : cur))}
+                        />
                         <input className="field num" placeholder="Qty" value={r.quantity} onChange={(e) => setReceipts((p) => p.map((x, j) => j === i ? { ...x, quantity: e.target.value } : x))} />
                         <input className="field" placeholder="Supplier" value={r.supplier} onChange={(e) => setReceipts((p) => p.map((x, j) => j === i ? { ...x, supplier: e.target.value } : x))} />
                         <button className="rm-line" onClick={() => { setReceipts((p) => p.filter((_, j) => j !== i)); if (newProductRow === i) setNewProductRow(null); }}><Icon name="x" size={15} /></button>
                       </div>
+                      {pickerOpen && (
+                        <div className="prod-picker-menu">
+                          {filteredProducts.length === 0 && <div className="prod-picker-empty">{pickerQuery ? "No matching products" : "No products in the catalogue yet"}</div>}
+                          {filteredProducts.map((p) => (
+                            <div key={p.id} className="prod-picker-item" onMouseDown={(e) => {
+                              e.preventDefault();
+                              setReceipts((prev) => prev.map((x, j) => j === i ? { ...x, productId: p.id } : x));
+                              setNewProductRow((cur) => (cur === i ? null : cur));
+                              setOpenPickerRow(null);
+                            }}>{p.name}</div>
+                          ))}
+                          <div className="prod-picker-item prod-picker-add" onMouseDown={(e) => { e.preventDefault(); setNewProductRow(i); setOpenPickerRow(null); }}>
+                            <Icon name="plus" size={13} stroke={2.2} />Add new product…
+                          </div>
+                        </div>
+                      )}
                       {newProductRow === i && (
                         <div style={{ background: "var(--surface-2)", padding: 10, borderRadius: 10, marginBottom: 8 }}>
                           <div style={{ display: "grid", gridTemplateColumns: "1fr 140px auto auto", gap: 8, alignItems: "center" }}>
@@ -181,7 +200,8 @@ export default function ReportWizard({ branches, fxRate }: { branches: Branch[];
                         </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                   <button className="add-line" onClick={() => setReceipts((p) => [...p, { productId: "", quantity: "", supplier: "", note: "" }])}><Icon name="plus" size={15} stroke={2.2} />Add another product</button>
                 </div>
               )}
@@ -197,7 +217,6 @@ export default function ReportWizard({ branches, fxRate }: { branches: Branch[];
                 <div className="fg"><div style={{ fontSize: 11, fontWeight: 700, color: "var(--usd)", marginBottom: 6, letterSpacing: ".04em" }}>USD</div>
                   <div className="cur-input"><span className="pre">$</span><input className="num" inputMode="numeric" value={cashUsd} onChange={(e) => setCashUsd(e.target.value)} placeholder="0" /></div></div>
               </div>
-              <div className="review-total" style={{ marginTop: 4 }}><span>Combined (at 1 USD = {fmt(fxRate)} CDF)</span><span className="num">≈ {fmt(Math.round(combined))} CDF</span></div>
               <label className="field-label">Notes</label>
               <textarea className="field" rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Any cash discrepancy or comment…" />
             </>
