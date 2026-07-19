@@ -74,8 +74,8 @@ export async function getBranchMetrics(): Promise<BranchMetric[]> {
 
 // Today-only dashboard data. Deliberately does not compute weekly/monthly/yearly rollups —
 // the dashboard is a same-day operations view; historical analytics belong in the Reports
-// module (see getBranchComparison/getInventoryTrend below, which stay range-parameterized
-// for that future use, and are called with today's range only from the dashboard).
+// module (see getBranchComparison below, which stays range-parameterized for that future
+// use, and is called with today's range only from the dashboard).
 export async function getDashboard() {
   const today = startOfToday();
   const branchMetrics = await getBranchMetrics();
@@ -227,22 +227,6 @@ export async function getOverallCashCollected(): Promise<{ cashCdf: number; cash
     _sum: { cashCdf: true, cashUsd: true },
   });
   return { cashCdf: agg._sum.cashCdf ?? 0, cashUsd: agg._sum.cashUsd ?? 0 };
-}
-
-// Total inventory value (USD, summed across branches + warehouse) at each valuation date on
-// record, oldest to newest — for the dashboard's inventory trend chart.
-export async function getInventoryTrend(): Promise<{ label: string; usd: number }[]> {
-  const rows = await prisma.inventoryValuation.findMany({ orderBy: { periodEnding: "asc" } });
-  const byDate = new Map<string, number>();
-  for (const r of rows) {
-    const key = r.periodEnding.toISOString().slice(0, 10);
-    byDate.set(key, (byDate.get(key) ?? 0) + r.valueUsd);
-  }
-  return [...byDate.entries()].slice(-8).map(([date, usd]) => ({ label: fmtShortDate(date), usd }));
-}
-
-function fmtShortDate(iso: string): string {
-  return new Date(iso + "T00:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
 }
 
 export type BranchDetail = {

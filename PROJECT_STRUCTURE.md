@@ -150,7 +150,8 @@ up everything, restore by putting it back.
   The `@/*` path alias in `tsconfig.json` maps to the project root, so `@/components/...`,
   `@/lib/...`, and `@/app/...` all resolve from anywhere in the codebase.
 - `.env` — `DATABASE_URL` (relative to `database/prisma/schema.prisma`) and
-  `SESSION_SECRET`.
+  `ADMIN_EMAIL`/`ADMIN_PASSWORD` (read by `database/prisma/seed.ts` when seeding
+  the initial administrator account).
 
 ## What was removed in this cleanup
 

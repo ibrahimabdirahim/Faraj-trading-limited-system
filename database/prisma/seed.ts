@@ -14,9 +14,9 @@ const BRANCHES = [
 
 const CATEGORIES = ["Construction", "Food", "Household", "Electronics", "Beverages", "Hardware", "Other"];
 
-// Kept in sync with lib/permissionTypes.ts's ROLES — duplicated here (not imported) because this
-// script runs standalone via `tsx`, outside Next's bundler, and lib/permissions.ts pulls in the
-// "server-only" guard which only resolves inside Next's own build.
+// Kept in sync with the RoleKey union in lib/permissionTypes.ts — duplicated here (not imported)
+// because this script runs standalone via `tsx`, outside Next's bundler, and lib/permissions.ts
+// pulls in the "server-only" guard which only resolves inside Next's own build.
 const ROLES: { key: string; name: string }[] = [
   { key: "super_admin", name: "Super Administrator" },
   { key: "general_admin", name: "General Administrator" },
@@ -37,9 +37,13 @@ async function main() {
     roleByKey.set(r.key, row.id);
   }
 
-  // Admin
-  const email = "soljaman293@gmail.com";
-  const passwordHash = await bcrypt.hash("faraj2026", 10);
+  // Admin — credentials come from the environment so real ones are never hardcoded/committed.
+  const email = process.env.ADMIN_EMAIL;
+  const password = process.env.ADMIN_PASSWORD;
+  if (!email || !password) {
+    throw new Error("Set ADMIN_EMAIL and ADMIN_PASSWORD in your environment before seeding.");
+  }
+  const passwordHash = await bcrypt.hash(password, 10);
   await prisma.user.upsert({
     where: { email },
     update: {},

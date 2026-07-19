@@ -13,17 +13,6 @@ export type Action = (typeof ACTIONS)[number];
 
 export type RoleKey = "super_admin" | "general_admin" | "it_admin" | "branch_manager" | "accountant" | "inventory_officer" | "auditor" | "viewer";
 
-export const ROLES: { key: RoleKey; name: string }[] = [
-  { key: "super_admin", name: "Super Administrator" },
-  { key: "general_admin", name: "General Administrator" },
-  { key: "it_admin", name: "IT Admin" },
-  { key: "branch_manager", name: "Branch Manager" },
-  { key: "accountant", name: "Accountant" },
-  { key: "inventory_officer", name: "Inventory Officer" },
-  { key: "auditor", name: "Auditor" },
-  { key: "viewer", name: "Viewer (Read Only)" },
-];
-
 // Roles allowed to manage other users, delete the last one of their own tier, etc.
 export const ADMIN_TIER_ROLE_KEYS: RoleKey[] = ["super_admin", "general_admin", "it_admin"];
 

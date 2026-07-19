@@ -67,20 +67,17 @@ control:
 
 ```bash
 npm install          # install dependencies
+# set ADMIN_EMAIL and ADMIN_PASSWORD in .env — see below
 npm run setup        # create the database, generate the client, and seed
 npm run dev          # start the dev server → http://localhost:3000
 ```
 
 ## Demo Login / Initial Admin Setup
 
-`npm run setup` seeds a demo administrator account so you can sign in immediately:
-
-- **Email:** `admin@example.com`
-- **Password:** `<configured during setup>`
-
-> These are placeholders — the actual seeded credentials are set by the seed script
-> on your machine and are never committed to this repository. Change them in
-> **Settings** immediately after your first sign-in.
+`npm run setup` seeds an administrator account using the `ADMIN_EMAIL` and
+`ADMIN_PASSWORD` environment variables — set these in your `.env` before running
+setup. They are never hardcoded or committed to this repository. Change the
+password in **Settings** immediately after your first sign-in.
 
 ## Useful Scripts
 
@@ -148,10 +145,10 @@ committed by accident.) Timestamped snapshots taken during maintenance live in
 ## Deployment
 
 Any Node host works. For a persistent SQLite file use a host with a writable disk
-(Railway, Render, Fly.io, a VPS). Set the `DATABASE_URL` and `SESSION_SECRET`
-environment variables, run `npm run build`, then `npm run start`. To move to Postgres
-later, change the Prisma datasource and re-run migrations — application code is
-unchanged.
+(Railway, Render, Fly.io, a VPS). Set the `DATABASE_URL`, `ADMIN_EMAIL`, and
+`ADMIN_PASSWORD` environment variables, run `npm run build`, then `npm run start`.
+To move to Postgres later, change the Prisma datasource and re-run migrations —
+application code is unchanged.
 
 ## Roadmap
 
