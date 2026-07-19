@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/shared/Icon";
 import { toast } from "@/lib/toast";
+import ConfirmDeleteModal from "@/components/shared/ConfirmDeleteModal";
 import { deleteSupplierPurchase } from "@/app/actions";
 import { fmt, fmtDate } from "@/lib/format";
 import RecordPurchaseForm from "./RecordPurchaseForm";
@@ -15,28 +16,19 @@ export type PurchaseRow = {
 function RowActions({ row, suppliers }: { row: PurchaseRow; suppliers: { id: string; name: string }[] }) {
   const router = useRouter();
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [busy, setBusy] = useState(false);
-
-  async function doDelete() {
-    setBusy(true);
-    const res = await deleteSupplierPurchase(row.id);
-    setBusy(false);
-    if (res.ok) { setConfirmDelete(false); toast("Purchase deleted", row.supplierName); router.refresh(); }
-  }
 
   return (
     <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
       <RecordPurchaseForm suppliers={suppliers} purchase={{ id: row.id, supplierId: row.supplierId, date: row.date.toISOString().slice(0, 10), invoiceNumber: row.invoiceNumber, totalAmount: row.totalAmount, currency: row.currency, notes: row.notes }} />
       <button className="icon-btn" title="Delete" aria-label="Delete" onClick={() => setConfirmDelete(true)}><Icon name="trash" size={15} /></button>
       {confirmDelete && (
-        <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) setConfirmDelete(false); }}>
-          <div className="modal" style={{ maxWidth: 420 }}>
-            <div className="modal-head"><Icon name="trash" size={20} stroke={2} /><h3>Delete this purchase?</h3>
-              <button className="close" onClick={() => setConfirmDelete(false)}><Icon name="x" size={18} /></button></div>
-            <div className="modal-body"><p style={{ fontSize: 13 }}>This reduces {row.supplierName}&apos;s outstanding balance calculation. This can&apos;t be undone.</p></div>
-            <div className="modal-foot"><button className="btn" onClick={() => setConfirmDelete(false)}>Cancel</button><div className="spacer" /><button className="btn btn-primary" style={{ background: "var(--crit)", borderColor: "var(--crit)" }} disabled={busy} onClick={doDelete}>{busy ? "Deleting…" : "Delete"}</button></div>
-          </div>
-        </div>
+        <ConfirmDeleteModal
+          title="Delete this purchase?"
+          description={`This reduces ${row.supplierName}'s outstanding balance calculation. This can't be undone.`}
+          onClose={() => setConfirmDelete(false)}
+          onConfirm={(password) => deleteSupplierPurchase(row.id, password)}
+          onSuccess={() => { setConfirmDelete(false); toast("Purchase deleted", row.supplierName); router.refresh(); }}
+        />
       )}
     </div>
   );

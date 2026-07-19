@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { redirect } from "next/navigation";
 import { prisma } from "./db";
 import { getCurrentUser, destroySession } from "./session";
 import { MODULES, ACTIONS, roleDefaultMap, emptyPermissionMap, type Module, type Action, type RoleKey, type PermissionMap } from "./permissionTypes";
@@ -37,4 +38,18 @@ export async function requirePermission(module: Module, action: Action) {
   const allowed = await hasPermission(user.id, module, action);
   if (!allowed) throw new Error("You do not have permission to do this.");
   return user;
+}
+
+// For server component pages (not server actions) — redirects to /login if not authenticated,
+// otherwise returns the effective permission for the given module/action so the page can
+// render its own Access Denied state instead of throwing into Next's generic error boundary.
+export async function checkPageAccess(module: Module, action: Action = "view") {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  if (!user.active || user.locked) {
+    await destroySession();
+    redirect("/login");
+  }
+  const allowed = await hasPermission(user.id, module, action);
+  return { user, allowed };
 }

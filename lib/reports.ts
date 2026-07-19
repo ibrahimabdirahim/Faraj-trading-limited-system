@@ -26,6 +26,16 @@ export function reportMeta(slug: string): ReportMeta {
   return REPORTS.find((r) => r.slug === slug) ?? REPORTS[0];
 }
 
+// Supplier-domain reports live behind /suppliers/reports (gated on "suppliers" view) —
+// everything else lives behind /reports (gated on "reports" view). Shared here so the
+// PDF/Excel export routes can require the same permission as whichever page linked to them,
+// regardless of which page the request actually came from.
+export const SUPPLIER_REPORT_SLUGS = ["purchase", "payment", "goods-received", "outstanding-balance"];
+
+export function reportRequiredModule(slug: string): "suppliers" | "reports" {
+  return SUPPLIER_REPORT_SLUGS.includes(slug) ? "suppliers" : "reports";
+}
+
 // Every filter is optional — omitted means "don't narrow this dimension" (e.g. no branchId
 // means all branches). Each report type applies whichever of these are meaningful to it.
 export type ReportFilters = {

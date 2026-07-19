@@ -1,13 +1,15 @@
 import { prisma } from "@/lib/db";
-import { requirePermission } from "@/lib/permissions";
+import { checkPageAccess } from "@/lib/permissions";
 import SupplierTabs from "@/components/suppliers/SupplierTabs";
 import RecordGoodsReceivedForm from "@/components/suppliers/RecordGoodsReceivedForm";
 import GoodsReceivedTable, { type GoodsReceiptRow } from "@/components/suppliers/GoodsReceivedTable";
+import AccessDenied from "@/components/shared/AccessDenied";
 
 export const dynamic = "force-dynamic";
 
 export default async function GoodsReceivedPage() {
-  await requirePermission("suppliers", "view");
+  const { allowed } = await checkPageAccess("suppliers", "view");
+  if (!allowed) return <AccessDenied module="Goods Received" />;
 
   const [receipts, suppliers, branches, products] = await Promise.all([
     prisma.goodsReceipt.findMany({

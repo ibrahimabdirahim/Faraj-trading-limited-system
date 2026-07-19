@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/shared/Icon";
 import { toast } from "@/lib/toast";
+import ConfirmDeleteModal from "@/components/shared/ConfirmDeleteModal";
 import { updateSupplier, deleteSupplier } from "@/app/actions";
 import SupplierDetailModal from "./SupplierDetailModal";
 import type { SupplierBalance } from "@/lib/metrics";
@@ -23,14 +24,6 @@ export default function SupplierRowActions({ supplier }: { supplier: SupplierBal
     setBusy(false);
     if (res.ok) { setEdit(false); toast("Supplier updated", f.name); router.refresh(); }
     else setError(res.error ?? "Could not update supplier.");
-  }
-
-  async function doDelete() {
-    setBusy(true); setError(null);
-    const res = await deleteSupplier(supplier.id);
-    setBusy(false);
-    if (res.ok) { setConfirmDelete(false); toast("Supplier deleted", supplier.name); router.refresh(); }
-    else setError(res.error ?? "Could not delete supplier.");
   }
 
   return (
@@ -71,17 +64,14 @@ export default function SupplierRowActions({ supplier }: { supplier: SupplierBal
       )}
 
       {confirmDelete && (
-        <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) setConfirmDelete(false); }}>
-          <div className="modal" style={{ maxWidth: 420 }}>
-            <div className="modal-head"><Icon name="trash" size={20} stroke={2} /><h3>Delete {supplier.name}?</h3>
-              <button className="close" onClick={() => setConfirmDelete(false)}><Icon name="x" size={18} /></button></div>
-            <div className="modal-body">
-              <p style={{ fontSize: 13 }}>This can&apos;t be undone. Suppliers with purchase, payment, or goods-received history can&apos;t be deleted — mark them Inactive instead.</p>
-              {error && <p style={{ color: "var(--crit)", fontSize: 12.5, marginTop: 10 }}>{error}</p>}
-            </div>
-            <div className="modal-foot"><button className="btn" onClick={() => setConfirmDelete(false)}>Cancel</button><div className="spacer" /><button className="btn btn-primary" style={{ background: "var(--crit)", borderColor: "var(--crit)" }} disabled={busy} onClick={doDelete}>{busy ? "Deleting…" : "Delete supplier"}</button></div>
-          </div>
-        </div>
+        <ConfirmDeleteModal
+          title={`Delete ${supplier.name}?`}
+          description="This can't be undone. Suppliers with purchase, payment, or goods-received history can't be deleted — mark them Inactive instead."
+          confirmLabel="Delete supplier"
+          onClose={() => setConfirmDelete(false)}
+          onConfirm={(password) => deleteSupplier(supplier.id, password)}
+          onSuccess={() => { setConfirmDelete(false); toast("Supplier deleted", supplier.name); router.refresh(); }}
+        />
       )}
     </>
   );

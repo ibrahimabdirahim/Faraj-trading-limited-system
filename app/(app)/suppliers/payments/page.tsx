@@ -1,14 +1,16 @@
 import { prisma } from "@/lib/db";
-import { requirePermission } from "@/lib/permissions";
+import { checkPageAccess } from "@/lib/permissions";
 import { getSuppliersWithBalances } from "@/lib/metrics";
 import SupplierTabs from "@/components/suppliers/SupplierTabs";
 import PaySupplierForm from "@/components/suppliers/PaySupplierForm";
 import PaymentsTable, { type PaymentRow } from "@/components/suppliers/PaymentsTable";
+import AccessDenied from "@/components/shared/AccessDenied";
 
 export const dynamic = "force-dynamic";
 
 export default async function PaymentsPage() {
-  await requirePermission("suppliers", "view");
+  const { allowed } = await checkPageAccess("suppliers", "view");
+  if (!allowed) return <AccessDenied module="Supplier Payments" />;
 
   const [payments, suppliers] = await Promise.all([
     prisma.supplierPayment.findMany({ orderBy: { date: "desc" }, include: { supplier: true, createdBy: true }, take: 300 }),

@@ -1,6 +1,6 @@
 import { getDashboard, getBranchComparison, getProductsReceivedToday, getTodayExpenseCount, getOverallCashCollected, getAvailableCash, getSupplierPaymentsTotal, resolveDateRange } from "@/lib/metrics";
 import { getSettings } from "@/lib/settings";
-import { getCurrentUser } from "@/lib/session";
+import { checkPageAccess } from "@/lib/permissions";
 import DashboardHero from "@/components/dashboard/DashboardHero";
 import QuickActionsGrid from "@/components/dashboard/QuickActionsGrid";
 import TotalCashHeroCard from "@/components/dashboard/TotalCashHeroCard";
@@ -8,11 +8,13 @@ import AvailableCashCard from "@/components/dashboard/AvailableCashCard";
 import TodaySummaryGrid from "@/components/dashboard/TodaySummaryGrid";
 import BranchRankingPanel from "@/components/dashboard/BranchRankingPanel";
 import ActivityTimeline from "@/components/dashboard/ActivityTimeline";
+import AccessDenied from "@/components/shared/AccessDenied";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const user = await getCurrentUser();
+  const { user, allowed } = await checkPageAccess("dashboard", "view");
+  if (!allowed) return <AccessDenied module="the Dashboard" />;
   const todayRange = resolveDateRange("today");
 
   const [{ submitted, totalBranches, totals, activity }, settings, comparisonRows, productsReceived, expenseCount, overall, todaySupplierPayments] = await Promise.all([
@@ -34,7 +36,7 @@ export default async function DashboardPage() {
     <>
       <DashboardHero
         companyName={settings.companyName} companyLogo={settings.companyLogo}
-        userName={user?.name ?? "there"} greeting={greeting} dateLabel={dateLabel}
+        userName={user.name} greeting={greeting} dateLabel={dateLabel}
         submitted={submitted} totalBranches={totalBranches}
       />
 

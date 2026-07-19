@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/session";
 import { getSettings } from "@/lib/settings";
-import { getReportTable, reportMeta, parseReportFilters } from "@/lib/reports";
+import { getReportTable, reportMeta, parseReportFilters, reportRequiredModule } from "@/lib/reports";
+import { hasPermission } from "@/lib/permissions";
 import { docColor, DOC_THEME } from "@/lib/docTheme";
 import { fmt, fmtDate, fmtTime } from "@/lib/format";
 import AutoPrint from "@/components/reports/AutoPrint";
+import AccessDenied from "@/components/shared/AccessDenied";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +26,9 @@ export default async function PrintReportPage({ params, searchParams }: { params
   if (!user) redirect("/login");
 
   const { type } = await params;
+  if (!(await hasPermission(user.id, reportRequiredModule(type), "view"))) {
+    return <div style={{ padding: 40 }}><AccessDenied module="this report" /></div>;
+  }
   const sp = await searchParams;
   const usp = new URLSearchParams(Object.entries(sp).flatMap(([k, v]) => (v === undefined ? [] : [[k, Array.isArray(v) ? v[0] : v] as [string, string]])));
   const filters = parseReportFilters(usp);

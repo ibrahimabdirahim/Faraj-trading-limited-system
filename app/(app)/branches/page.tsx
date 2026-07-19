@@ -1,14 +1,19 @@
 import { getBranchMetrics } from "@/lib/metrics";
 import { prisma } from "@/lib/db";
+import { checkPageAccess } from "@/lib/permissions";
 import { fmt, compact, fmtDate } from "@/lib/format";
 import { Spark } from "@/components/shared/ChartPrimitives";
 import Icon from "@/components/shared/Icon";
 import ValuationForm from "@/components/branches/ValuationForm";
 import EditBranchForm from "@/components/branches/EditBranchForm";
+import AccessDenied from "@/components/shared/AccessDenied";
 
 export const dynamic = "force-dynamic";
 
 export default async function BranchesPage() {
+  const { allowed } = await checkPageAccess("branches", "view");
+  if (!allowed) return <AccessDenied module="Branches" />;
+
   const metrics = await getBranchMetrics();
   const branches = await prisma.branch.findMany({ where: { type: "branch", active: true }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true } });
   const valuations = await prisma.inventoryValuation.findMany({ orderBy: { periodEnding: "desc" }, include: { branch: true } });

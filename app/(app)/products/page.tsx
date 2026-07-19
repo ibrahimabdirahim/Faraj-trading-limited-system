@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/db";
+import { checkPageAccess } from "@/lib/permissions";
 import ToastButton from "@/components/shared/ToastButton";
 import AddProductForm from "@/components/products/AddProductForm";
 import ProductsTable from "@/components/products/ProductsTable";
+import AccessDenied from "@/components/shared/AccessDenied";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +17,9 @@ function MiniStat({ label, value, color, delta }: { label: string; value: string
 }
 
 export default async function ProductsPage() {
+  const { allowed } = await checkPageAccess("products", "view");
+  if (!allowed) return <AccessDenied module="Products" />;
+
   const products = await prisma.product.findMany({ orderBy: { createdAt: "desc" }, include: { category: true } });
   const categories = await prisma.category.findMany({ orderBy: { name: "asc" } });
   const lowCount = products.filter((p) => p.status === "Low").length;

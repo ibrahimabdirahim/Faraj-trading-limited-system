@@ -40,7 +40,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# database (SQLite) — created locally by `npm run setup`
+# legacy SQLite database (superseded by PostgreSQL — kept ignored so the old file/backups
+# are never accidentally committed)
 database/prisma/dev.db
 database/prisma/dev.db-journal
 database/backup/

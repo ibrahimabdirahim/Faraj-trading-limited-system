@@ -57,8 +57,7 @@ control:
 ## Tech Stack
 
 - **Next.js 16** (App Router, React 19, TypeScript) — server components + server actions
-- **Prisma + SQLite** — the entire database is one file (`database/prisma/dev.db`), which
-  doubles as the backup unit
+- **Prisma + PostgreSQL** — hosted on Render (or any Postgres provider)
 - **Pure-CSS design system** — theme-aware (light/dark), no UI framework, no webfont fetch
 - **bcrypt** password auth with server-side sessions (httpOnly cookie), an idle
   timeout, and login-attempt lockout
@@ -90,7 +89,7 @@ password in **Settings** immediately after your first sign-in.
 | `npm run db:seed` | Re-seed branches, warehouse, categories, roles, admin |
 | `npm run db:migrate` | Create/apply a Prisma migration |
 | `npm run db:generate` | Regenerate the Prisma client |
-| `npm run db:studio` | Open Prisma Studio against `database/prisma/dev.db` |
+| `npm run db:studio` | Open Prisma Studio against `DATABASE_URL` |
 | `npm run db:reset` | Wipe and recreate the database, then seed |
 
 ## System Modules
@@ -137,18 +136,15 @@ See [`database/prisma/schema.prisma`](database/prisma/schema.prisma). Key tables
 
 ## Backup
 
-The whole system is the single file `database/prisma/dev.db`. Copy it to back up
-everything; restore by putting it back. (It is git-ignored so your data is never
-committed by accident.) Timestamped snapshots taken during maintenance live in
-`database/backup/`.
+The database runs on PostgreSQL. Use your host's automated backups (Render takes daily
+Postgres backups automatically) or run `pg_dump` on a schedule of your own.
 
 ## Deployment
 
-Any Node host works. For a persistent SQLite file use a host with a writable disk
-(Railway, Render, Fly.io, a VPS). Set the `DATABASE_URL`, `ADMIN_EMAIL`, and
-`ADMIN_PASSWORD` environment variables, run `npm run build`, then `npm run start`.
-To move to Postgres later, change the Prisma datasource and re-run migrations —
-application code is unchanged.
+See [`RENDER_DEPLOYMENT.md`](RENDER_DEPLOYMENT.md) for the full Render setup guide. In
+short: provision a Render Postgres instance, set `DATABASE_URL`, `ADMIN_EMAIL`, and
+`ADMIN_PASSWORD`, run `npm run build`, then `npm run start` — `prisma migrate deploy` runs
+as part of `npm run setup`/the release step.
 
 ## Roadmap
 

@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { requirePermission } from "@/lib/permissions";
+import { checkPageAccess } from "@/lib/permissions";
 import Icon from "@/components/shared/Icon";
 import TrashTable, { type TrashedReportRow } from "@/components/daily-reports/TrashTable";
+import AccessDenied from "@/components/shared/AccessDenied";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReportsTrashPage() {
-  await requirePermission("daily-reports", "delete");
+  const { allowed } = await checkPageAccess("daily-reports", "delete");
+  if (!allowed) return <AccessDenied module="the Daily Reports Trash" />;
 
   const reports = await prisma.dailyReport.findMany({
     where: { NOT: { deletedAt: null } },

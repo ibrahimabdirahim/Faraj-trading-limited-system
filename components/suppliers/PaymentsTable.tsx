@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/shared/Icon";
 import { toast } from "@/lib/toast";
+import ConfirmDeleteModal from "@/components/shared/ConfirmDeleteModal";
 import { deleteSupplierPayment, approveSupplierPayment, unapproveSupplierPayment } from "@/app/actions";
 import { fmt, fmtDate } from "@/lib/format";
 import PaySupplierForm from "./PaySupplierForm";
@@ -16,13 +17,6 @@ function RowActions({ row, suppliers }: { row: PaymentRow; suppliers: { id: stri
   const router = useRouter();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
-
-  async function doDelete() {
-    setBusy(true);
-    const res = await deleteSupplierPayment(row.id);
-    setBusy(false);
-    if (res.ok) { setConfirmDelete(false); toast("Payment deleted", row.supplierName); router.refresh(); }
-  }
 
   async function doApprove() {
     setBusy(true);
@@ -50,14 +44,13 @@ function RowActions({ row, suppliers }: { row: PaymentRow; suppliers: { id: stri
         </>
       )}
       {confirmDelete && (
-        <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) setConfirmDelete(false); }}>
-          <div className="modal" style={{ maxWidth: 420 }}>
-            <div className="modal-head"><Icon name="trash" size={20} stroke={2} /><h3>Delete this payment?</h3>
-              <button className="close" onClick={() => setConfirmDelete(false)}><Icon name="x" size={18} /></button></div>
-            <div className="modal-body"><p style={{ fontSize: 13 }}>This increases {row.supplierName}&apos;s outstanding balance back and restores Available Cash by the same amount. This can&apos;t be undone.</p></div>
-            <div className="modal-foot"><button className="btn" onClick={() => setConfirmDelete(false)}>Cancel</button><div className="spacer" /><button className="btn btn-primary" style={{ background: "var(--crit)", borderColor: "var(--crit)" }} disabled={busy} onClick={doDelete}>{busy ? "Deleting…" : "Delete"}</button></div>
-          </div>
-        </div>
+        <ConfirmDeleteModal
+          title="Delete this payment?"
+          description={`This increases ${row.supplierName}'s outstanding balance back and restores Available Cash by the same amount. This can't be undone.`}
+          onClose={() => setConfirmDelete(false)}
+          onConfirm={(password) => deleteSupplierPayment(row.id, password)}
+          onSuccess={() => { setConfirmDelete(false); toast("Payment deleted", row.supplierName); router.refresh(); }}
+        />
       )}
     </div>
   );

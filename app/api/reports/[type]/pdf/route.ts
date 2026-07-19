@@ -3,7 +3,8 @@ import autoTable from "jspdf-autotable";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/session";
 import { getSettings, type AppSettings } from "@/lib/settings";
-import { getReportTable, reportMeta, parseReportFilters, type ReportTable } from "@/lib/reports";
+import { getReportTable, reportMeta, parseReportFilters, reportRequiredModule, type ReportTable } from "@/lib/reports";
+import { hasPermission } from "@/lib/permissions";
 import { docColor, DOC_THEME } from "@/lib/docTheme";
 import { fmt, fmtDate, fmtTime } from "@/lib/format";
 
@@ -120,6 +121,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ type: st
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
   const { type } = await params;
+  if (!(await hasPermission(user.id, reportRequiredModule(type), "view"))) {
+    return NextResponse.json({ error: "You do not have permission to view this report." }, { status: 403 });
+  }
   const filters = parseReportFilters(new URL(req.url).searchParams);
   const [table, settings, meta] = await Promise.all([getReportTable(type, filters), getSettings(), Promise.resolve(reportMeta(type))]);
   const brand = hexToRgb(docColor(meta.color));

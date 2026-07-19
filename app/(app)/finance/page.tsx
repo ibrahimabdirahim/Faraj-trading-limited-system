@@ -1,8 +1,10 @@
 import { prisma } from "@/lib/db";
 import { startOfToday, addDays } from "@/lib/metrics";
+import { checkPageAccess } from "@/lib/permissions";
 import { compact } from "@/lib/format";
 import { AreaChart } from "@/components/shared/ChartPrimitives";
 import ToastButton from "@/components/shared/ToastButton";
+import AccessDenied from "@/components/shared/AccessDenied";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +13,9 @@ function MiniStat({ label, value, color, delta }: { label: string; value: string
 }
 
 export default async function FinancePage() {
+  const { allowed } = await checkPageAccess("finance", "view");
+  if (!allowed) return <AccessDenied module="Finance" />;
+
   const today = startOfToday();
 
   // last 7 days revenue + expenses

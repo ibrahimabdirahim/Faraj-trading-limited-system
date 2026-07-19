@@ -1,15 +1,14 @@
 // Faraj OS — data model
-// SQLite: the whole database is a single file (prisma/dev.db) that doubles as the backup unit.
-// Money is stored as Float. Currency is a String: "CDF" or "USD". No auto-conversion is
-// persisted — CDF and USD are always kept separate; the FX rate (a Setting) is used only
-// for combined display totals.
+// PostgreSQL, hosted on Render. Money is stored as Float. Currency is a String: "CDF" or
+// "USD". No auto-conversion is persisted — CDF and USD are always kept separate; the FX rate
+// (a Setting) is used only for combined display totals.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

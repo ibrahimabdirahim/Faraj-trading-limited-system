@@ -2,7 +2,8 @@ import ExcelJS from "exceljs";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/session";
 import { getSettings } from "@/lib/settings";
-import { getReportTable, reportMeta, parseReportFilters } from "@/lib/reports";
+import { getReportTable, reportMeta, parseReportFilters, reportRequiredModule } from "@/lib/reports";
+import { hasPermission } from "@/lib/permissions";
 import { docColor, DOC_THEME } from "@/lib/docTheme";
 import { fmt, fmtDate, fmtTime } from "@/lib/format";
 
@@ -19,6 +20,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ type: st
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
   const { type } = await params;
+  if (!(await hasPermission(user.id, reportRequiredModule(type), "view"))) {
+    return NextResponse.json({ error: "You do not have permission to view this report." }, { status: 403 });
+  }
   const filters = parseReportFilters(new URL(req.url).searchParams);
   const [table, settings, meta] = await Promise.all([getReportTable(type, filters), getSettings(), Promise.resolve(reportMeta(type))]);
   const brand = docColor(meta.color);
@@ -28,6 +32,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ type: st
   wb.created = new Date();
   const ws = wb.addWorksheet(table.title.slice(0, 31));
   const colCount = Math.max(table.columns.length, 2);
+
+  // Logo is always saved as a PNG data URL (see components/settings/LogoUpload.tsx's
+  // canvas.toDataURL("image/png")) — floats over the title band's top-left corner, same
+  // placement as the PDF/print headers.
+  if (settings.companyLogo.startsWith("data:image/png;base64,")) {
+    const imageId = wb.addImage({ base64: settings.companyLogo, extension: "png" });
+    ws.addImage(imageId, { tl: { col: 0.15, row: 0.15 }, ext: { width: 34, height: 34 } });
+  }
 
   ws.pageSetup = {
     ...ws.pageSetup,
@@ -46,7 +58,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ type: st
   const titleCell = ws.getCell(1, 1);
   titleCell.value = settings.companyName;
   titleCell.font = { bold: true, size: 16, color: { argb: "FFFFFFFF" } };
-  titleCell.alignment = { vertical: "middle" };
+  titleCell.alignment = { vertical: "middle", indent: settings.companyLogo ? 5 : 0 };
   ws.getRow(1).height = 26;
   for (let c = 1; c <= colCount; c++) ws.getCell(1, c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: argb(brand) } };
 

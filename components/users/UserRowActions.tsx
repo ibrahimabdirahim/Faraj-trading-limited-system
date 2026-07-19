@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/shared/Icon";
 import { toast } from "@/lib/toast";
+import ConfirmDeleteModal from "@/components/shared/ConfirmDeleteModal";
 import { setUserLocked, setUserActive, resetUserPassword, setUserPassword, deleteUser } from "@/app/actions";
 
 export default function UserRowActions({ userId, userName, locked, active, isSelf }: { userId: string; userName: string; locked: boolean; active: boolean; isSelf: boolean }) {
@@ -48,14 +49,6 @@ export default function UserRowActions({ userId, userName, locked, active, isSel
       setPasswordStep(null); setNewPassword(""); setConfirmPassword("");
       toast("Password set", `${userName}'s password was updated`);
     } else setError(res.error ?? "Could not set password.");
-  }
-
-  async function doDelete() {
-    setBusy(true);
-    const res = await deleteUser(userId);
-    setBusy(false);
-    if (res.ok) { setConfirmDelete(false); toast("User deleted", userName); router.refresh(); }
-    else setError(res.error ?? "Could not delete user.");
   }
 
   return (
@@ -122,17 +115,14 @@ export default function UserRowActions({ userId, userName, locked, active, isSel
       )}
 
       {confirmDelete && (
-        <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) setConfirmDelete(false); }}>
-          <div className="modal" style={{ maxWidth: 420 }}>
-            <div className="modal-head"><Icon name="trash" size={20} stroke={2} /><h3>Delete {userName}?</h3>
-              <button className="close" onClick={() => setConfirmDelete(false)}><Icon name="x" size={18} /></button></div>
-            <div className="modal-body">
-              <p style={{ fontSize: 13 }}>This permanently removes their login and sessions. This can&apos;t be undone.</p>
-              {error && <p style={{ color: "var(--crit)", fontSize: 12.5, marginTop: 10 }}>{error}</p>}
-            </div>
-            <div className="modal-foot"><button className="btn" onClick={() => setConfirmDelete(false)}>Cancel</button><div className="spacer" /><button className="btn btn-primary" style={{ background: "var(--crit)", borderColor: "var(--crit)" }} disabled={busy} onClick={doDelete}>{busy ? "Deleting…" : "Delete user"}</button></div>
-          </div>
-        </div>
+        <ConfirmDeleteModal
+          title={`Delete ${userName}?`}
+          description="This permanently removes their login and sessions. This can't be undone."
+          confirmLabel="Delete user"
+          onClose={() => setConfirmDelete(false)}
+          onConfirm={(password) => deleteUser(userId, password)}
+          onSuccess={() => { setConfirmDelete(false); toast("User deleted", userName); router.refresh(); }}
+        />
       )}
     </>
   );

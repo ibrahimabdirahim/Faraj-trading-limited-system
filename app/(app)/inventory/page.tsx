@@ -1,9 +1,11 @@
 import { prisma } from "@/lib/db";
 import { getBranchMetrics } from "@/lib/metrics";
+import { checkPageAccess } from "@/lib/permissions";
 import { compact, fmt, timeAgo } from "@/lib/format";
 import Icon from "@/components/shared/Icon";
 import ToastButton from "@/components/shared/ToastButton";
 import NewReportButton from "@/components/daily-reports/NewReportButton";
+import AccessDenied from "@/components/shared/AccessDenied";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +14,9 @@ function MiniStat({ label, value, color, delta }: { label: string; value: string
 }
 
 export default async function InventoryPage() {
+  const { allowed } = await checkPageAccess("inventory", "view");
+  if (!allowed) return <AccessDenied module="Inventory" />;
+
   const metrics = await getBranchMetrics();
   const valuations = await prisma.inventoryValuation.findMany({ orderBy: { periodEnding: "desc" } });
   const movements = await prisma.stockMovement.findMany({ orderBy: { date: "desc" }, take: 12, include: { product: true, branch: true } });

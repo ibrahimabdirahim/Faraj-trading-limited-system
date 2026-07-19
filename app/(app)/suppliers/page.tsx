@@ -1,13 +1,16 @@
-import { requirePermission } from "@/lib/permissions";
+import { checkPageAccess } from "@/lib/permissions";
 import { getSuppliersWithBalances } from "@/lib/metrics";
 import SupplierTabs from "@/components/suppliers/SupplierTabs";
 import SuppliersTable from "@/components/suppliers/SuppliersTable";
 import AddSupplierForm from "@/components/suppliers/AddSupplierForm";
+import AccessDenied from "@/components/shared/AccessDenied";
 
 export const dynamic = "force-dynamic";
 
 export default async function SuppliersPage() {
-  await requirePermission("suppliers", "view");
+  const { allowed } = await checkPageAccess("suppliers", "view");
+  if (!allowed) return <AccessDenied module="Suppliers" />;
+
   const suppliers = await getSuppliersWithBalances();
 
   return (

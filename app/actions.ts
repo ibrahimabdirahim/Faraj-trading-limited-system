@@ -18,6 +18,16 @@ async function audit(userId: string, action: string, entity: string, detail: str
   await prisma.auditLog.create({ data: { userId, action, entity, detail, targetUserId, branchName } });
 }
 
+// Every hard-delete action re-verifies the ACTING user's own password before proceeding —
+// a permission check alone only proves the session is valid, not that the person at the
+// keyboard right now is who they claim to be for a permanent, unrecoverable action. Returns
+// a boolean (rather than throwing) so callers can return a graceful { ok: false, error }
+// instead of an unhandled rejection reaching the UI.
+async function verifyOwnPassword(user: { passwordHash: string }, password: string): Promise<boolean> {
+  return bcrypt.compare(password || "", user.passwordHash);
+}
+const WRONG_PASSWORD_ERROR = "Password is incorrect.";
+
 // Called by IdleTimeoutMonitor whenever it detects real user activity — refreshes the
 // session's lastActivityAt (via getCurrentUser's side effect) and reports whether the
 // session is still alive, so the client can react immediately if it already timed out.
@@ -144,8 +154,9 @@ export async function restoreReport(id: string) {
   return { ok: true };
 }
 
-export async function permanentlyDeleteReport(id: string) {
+export async function permanentlyDeleteReport(id: string, password: string) {
   const admin = await requirePermission("daily-reports", "delete");
+  if (!(await verifyOwnPassword(admin, password))) return { ok: false, error: WRONG_PASSWORD_ERROR };
   const existing = await prisma.dailyReport.findUnique({ where: { id }, include: { branch: true } });
   if (!existing) return { ok: false, error: "Report not found." };
   if (!existing.deletedAt) return { ok: false, error: "Only reports already in the Trash can be permanently deleted." };
@@ -281,8 +292,9 @@ export async function updateUser(input: UserUpdateInput) {
   return { ok: true, id: u.id };
 }
 
-export async function deleteUser(id: string) {
+export async function deleteUser(id: string, password: string) {
   const admin = await requirePermission("user-management", "delete");
+  if (!(await verifyOwnPassword(admin, password))) return { ok: false, error: WRONG_PASSWORD_ERROR };
   if (id === admin.id) return { ok: false, error: "You can't delete your own account." };
   const target = await prisma.user.findUnique({ where: { id }, include: { roleRef: true } });
   if (!target) return { ok: false, error: "User not found." };
@@ -452,8 +464,9 @@ export async function updateSupplier(input: SupplierUpdateInput) {
   return { ok: true, id: s.id };
 }
 
-export async function deleteSupplier(id: string) {
+export async function deleteSupplier(id: string, password: string) {
   const user = await requirePermission("suppliers", "delete");
+  if (!(await verifyOwnPassword(user, password))) return { ok: false, error: WRONG_PASSWORD_ERROR };
   const s = await prisma.supplier.findUnique({
     where: { id },
     include: { _count: { select: { purchases: true, payments: true, goodsReceipts: true } } },
@@ -503,8 +516,9 @@ export async function createGoodsReceipt(input: GoodsReceiptInput) {
   return { ok: true, id: gr.id };
 }
 
-export async function deleteGoodsReceipt(id: string) {
+export async function deleteGoodsReceipt(id: string, password: string) {
   const user = await requirePermission("suppliers", "delete");
+  if (!(await verifyOwnPassword(user, password))) return { ok: false, error: WRONG_PASSWORD_ERROR };
   const gr = await prisma.goodsReceipt.findUnique({ where: { id }, include: { supplier: true, branch: true } });
   if (!gr) return { ok: false, error: "Goods receipt not found." };
   await prisma.goodsReceipt.delete({ where: { id } });
@@ -548,8 +562,9 @@ export async function updateSupplierPurchase(input: SupplierPurchaseUpdateInput)
   return { ok: true, id: p.id };
 }
 
-export async function deleteSupplierPurchase(id: string) {
+export async function deleteSupplierPurchase(id: string, password: string) {
   const user = await requirePermission("suppliers", "delete");
+  if (!(await verifyOwnPassword(user, password))) return { ok: false, error: WRONG_PASSWORD_ERROR };
   const p = await prisma.supplierPurchase.findUnique({ where: { id }, include: { supplier: true } });
   if (!p) return { ok: false, error: "Purchase not found." };
   await prisma.supplierPurchase.delete({ where: { id } });
@@ -595,8 +610,9 @@ export async function updateSupplierPayment(input: SupplierPaymentUpdateInput) {
   return { ok: true, id: p.id };
 }
 
-export async function deleteSupplierPayment(id: string) {
+export async function deleteSupplierPayment(id: string, password: string) {
   const user = await requirePermission("suppliers", "delete");
+  if (!(await verifyOwnPassword(user, password))) return { ok: false, error: WRONG_PASSWORD_ERROR };
   const p = await prisma.supplierPayment.findUnique({ where: { id }, include: { supplier: true } });
   if (!p) return { ok: false, error: "Payment not found." };
   if (p.locked) return { ok: false, error: "This payment is approved and locked. Unapprove it first to delete." };

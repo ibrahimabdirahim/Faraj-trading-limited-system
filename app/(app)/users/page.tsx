@@ -1,11 +1,13 @@
 import { prisma } from "@/lib/db";
-import { requirePermission, getEffectivePermissions, roleDefaultMap, type RoleKey } from "@/lib/permissions";
+import { checkPageAccess, getEffectivePermissions, roleDefaultMap, type RoleKey } from "@/lib/permissions";
 import UsersTable, { type UserRow } from "@/components/users/UsersTable";
+import AccessDenied from "@/components/shared/AccessDenied";
 
 export const dynamic = "force-dynamic";
 
 export default async function UsersPage() {
-  const currentUser = await requirePermission("user-management", "view");
+  const { user: currentUser, allowed } = await checkPageAccess("user-management", "view");
+  if (!allowed) return <AccessDenied module="User Management" />;
 
   const [users, roles, branches] = await Promise.all([
     prisma.user.findMany({

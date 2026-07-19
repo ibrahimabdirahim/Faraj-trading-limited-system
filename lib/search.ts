@@ -9,10 +9,12 @@ import { REPORTS } from "./reports";
 // the simplest correct design: a result is stale only for as long as the request itself
 // takes, and every create/update/delete is reflected on the very next search.
 //
-// Case-insensitivity: SQLite's default `contains` is already case-insensitive for ASCII
-// (verified — no `mode: "insensitive"` needed, which SQLite's Prisma provider doesn't
-// support anyway). If this project ever moves to Postgres, add `mode: "insensitive"` to
-// every `contains` clause below — Postgres does NOT default to case-insensitive LIKE.
+// Case-insensitivity: Postgres's default `contains` is case-SENSITIVE (unlike SQLite, which
+// defaulted to case-insensitive for ASCII) — every text match below goes through `ci()`,
+// which adds `mode: "insensitive"`, to keep search behavior unchanged across the migration.
+function ci(value: string) {
+  return { contains: value, mode: "insensitive" as const };
+}
 
 export type SearchResult = {
   module: string;
@@ -58,9 +60,9 @@ export async function globalSearch(rawQuery: string, userId: string): Promise<Se
     tasks.push(
       prisma.product.findMany({
         where: keywordWhere(keywords, (k) => [
-          { name: { contains: k } },
-          { barcode: { contains: k } },
-          { category: { name: { contains: k } } },
+          { name: ci(k) },
+          { barcode: ci(k) },
+          { category: { name: ci(k) } },
         ]),
         include: { category: true },
         take: TAKE,
@@ -76,7 +78,7 @@ export async function globalSearch(rawQuery: string, userId: string): Promise<Se
   if (can("branches")) {
     tasks.push(
       prisma.branch.findMany({
-        where: keywordWhere(keywords, (k) => [{ name: { contains: k } }, { manager: { contains: k } }]),
+        where: keywordWhere(keywords, (k) => [{ name: ci(k) }, { manager: ci(k) }]),
         take: TAKE,
       }).then((rows) => rows.map((b) => ({
         module: "Branches", id: b.id, title: b.name,
@@ -91,8 +93,8 @@ export async function globalSearch(rawQuery: string, userId: string): Promise<Se
     tasks.push(
       prisma.supplier.findMany({
         where: keywordWhere(keywords, (k) => [
-          { name: { contains: k } }, { company: { contains: k } },
-          { contactPerson: { contains: k } }, { phone: { contains: k } },
+          { name: ci(k) }, { company: ci(k) },
+          { contactPerson: ci(k) }, { phone: ci(k) },
         ]),
         take: TAKE,
       }).then((rows) => rows.map((s) => ({
@@ -106,8 +108,8 @@ export async function globalSearch(rawQuery: string, userId: string): Promise<Se
     tasks.push(
       prisma.supplierPayment.findMany({
         where: keywordWhere(keywords, (k) => [
-          { supplier: { name: { contains: k } } }, { referenceNumber: { contains: k } },
-          { notes: { contains: k } }, { method: { contains: k } },
+          { supplier: { name: ci(k) } }, { referenceNumber: ci(k) },
+          { notes: ci(k) }, { method: ci(k) },
         ]),
         include: { supplier: true },
         take: TAKE,
@@ -122,7 +124,7 @@ export async function globalSearch(rawQuery: string, userId: string): Promise<Se
     tasks.push(
       prisma.supplierPurchase.findMany({
         where: keywordWhere(keywords, (k) => [
-          { supplier: { name: { contains: k } } }, { invoiceNumber: { contains: k } }, { notes: { contains: k } },
+          { supplier: { name: ci(k) } }, { invoiceNumber: ci(k) }, { notes: ci(k) },
         ]),
         include: { supplier: true },
         take: TAKE,
@@ -137,7 +139,7 @@ export async function globalSearch(rawQuery: string, userId: string): Promise<Se
     tasks.push(
       prisma.goodsReceipt.findMany({
         where: keywordWhere(keywords, (k) => [
-          { supplier: { name: { contains: k } } }, { branch: { name: { contains: k } } }, { note: { contains: k } },
+          { supplier: { name: ci(k) } }, { branch: { name: ci(k) } }, { note: ci(k) },
         ]),
         include: { supplier: true, branch: true },
         take: TAKE,
@@ -154,7 +156,7 @@ export async function globalSearch(rawQuery: string, userId: string): Promise<Se
     tasks.push(
       prisma.dailyReport.findMany({
         where: { deletedAt: null, ...keywordWhere(keywords, (k) => [
-          { branch: { name: { contains: k } } }, { note: { contains: k } },
+          { branch: { name: ci(k) } }, { note: ci(k) },
         ]) },
         include: { branch: true },
         take: TAKE,
@@ -170,7 +172,7 @@ export async function globalSearch(rawQuery: string, userId: string): Promise<Se
     // permission, surfaced under the Finance page where they're actually shown.
     tasks.push(
       prisma.expense.findMany({
-        where: { report: { deletedAt: null }, ...keywordWhere(keywords, (k) => [{ description: { contains: k } }]) },
+        where: { report: { deletedAt: null }, ...keywordWhere(keywords, (k) => [{ description: ci(k) }]) },
         include: { report: { include: { branch: true } } },
         take: TAKE,
       }).then((rows) => rows.map((e) => ({
@@ -186,7 +188,7 @@ export async function globalSearch(rawQuery: string, userId: string): Promise<Se
     tasks.push(
       prisma.stockMovement.findMany({
         where: keywordWhere(keywords, (k) => [
-          { product: { name: { contains: k } } }, { branch: { name: { contains: k } } }, { type: { contains: k } },
+          { product: { name: ci(k) } }, { branch: { name: ci(k) } }, { type: ci(k) },
         ]),
         include: { product: true, branch: true },
         take: TAKE,
@@ -203,8 +205,8 @@ export async function globalSearch(rawQuery: string, userId: string): Promise<Se
     tasks.push(
       prisma.user.findMany({
         where: keywordWhere(keywords, (k) => [
-          { name: { contains: k } }, { email: { contains: k } }, { username: { contains: k } },
-          { roleRef: { name: { contains: k } } },
+          { name: ci(k) }, { email: ci(k) }, { username: ci(k) },
+          { roleRef: { name: ci(k) } },
         ]),
         include: { roleRef: true },
         take: TAKE,
@@ -218,7 +220,7 @@ export async function globalSearch(rawQuery: string, userId: string): Promise<Se
 
     tasks.push(
       prisma.role.findMany({
-        where: keywordWhere(keywords, (k) => [{ name: { contains: k } }, { key: { contains: k } }]),
+        where: keywordWhere(keywords, (k) => [{ name: ci(k) }, { key: ci(k) }]),
         take: TAKE,
       }).then((rows) => rows.map((r) => ({
         module: "Roles", id: r.id, title: r.name, subtitle: r.key,
