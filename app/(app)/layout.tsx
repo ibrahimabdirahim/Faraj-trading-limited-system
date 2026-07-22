@@ -30,7 +30,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="app">
       <Sidebar userName={user.name} role={user.roleRef.name} pending={pending} companyName={settings.companyName} companyLogo={settings.companyLogo} permissions={permissions} />
       <div className="main">
-        <Topbar hasNotifications={pending > 0} />
+        <Topbar userName={user.name} role={user.roleRef.name} pending={pending} />
         <div className="content">{children}</div>
       </div>
       <ToastHost />

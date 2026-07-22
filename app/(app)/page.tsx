@@ -35,7 +35,7 @@ export default async function DashboardPage() {
   return (
     <>
       <DashboardHero
-        companyName={settings.companyName} companyLogo={settings.companyLogo}
+        companyName={settings.companyName}
         userName={user.name} greeting={greeting} dateLabel={dateLabel}
         submitted={submitted} totalBranches={totalBranches}
       />

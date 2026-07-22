@@ -44,6 +44,7 @@ const PATHS: Record<string, React.ReactNode> = {
   key: (<><circle cx="8" cy="15" r="4" /><path d="M10.5 12.5 20 3M20 3h-4M20 3v4" /></>),
   eyeOff: (<><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a20.3 20.3 0 0 1 5.06-5.94M9.9 4.24A10.4 10.4 0 0 1 12 4c7 0 11 7 11 7a20.5 20.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24" /><path d="M1 1l22 22" /></>),
   truck: (<><path d="M1 3h15v13H1z" /><path d="M16 8h4l3 3v5h-7V8z" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" /></>),
+  chevronDown: (<path d="m6 9 6 6 6-6" />),
 };
 
 export default function Icon({ name, size = 18, stroke = 2, className = "", style }: { name: string; size?: number; stroke?: number; className?: string; style?: React.CSSProperties }) {

@@ -121,20 +121,29 @@ function GlobalSearch() {
   );
 }
 
-export default function Topbar({ hasNotifications }: { hasNotifications: boolean }) {
+export default function Topbar({ userName, role, pending }: { userName: string; role: string; pending: number }) {
   const path = usePathname();
   const inSuppliers = path.startsWith("/suppliers");
+  const initials = userName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
   return (
     <header className="topbar">
       <GlobalSearch />
       <div className="top-actions">
         <button className="icon-btn" title="Notifications" aria-label="Notifications">
-          {hasNotifications && <span className="dot" />}
+          {pending > 0 && <span className="badge-count">{pending}</span>}
           <Icon name="bell" size={18} />
         </button>
         <ThemeToggle />
         {!inSuppliers && <NewReportButton />}
+        <div className="top-profile">
+          <div className="avatar sm">{initials}</div>
+          <div className="top-profile-text">
+            <div className="top-profile-name">{userName}</div>
+            <div className="top-profile-role">{role}</div>
+          </div>
+          <Icon name="chevronDown" size={14} className="top-profile-chevron" />
+        </div>
       </div>
     </header>
   );
