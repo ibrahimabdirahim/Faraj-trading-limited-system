@@ -457,8 +457,8 @@ tbody tr:hover{background:var(--surface-2)}
   background-image:url("/faraj-logo-icon.png");background-size:110px 110px;background-repeat:repeat;
   mix-blend-mode:multiply;opacity:.55}
 .login2-right-bigicon{position:absolute;inset:0;
-  background-image:url("/faraj-logo-icon.png");background-size:min(60%,460px);background-repeat:no-repeat;
-  background-position:62% 48%;mix-blend-mode:multiply;opacity:.9}
+  background-image:url("/faraj-logo-plaque.png");background-size:min(88%,720px) auto;background-repeat:no-repeat;
+  background-position:center;filter:drop-shadow(0 20px 44px rgba(0,0,0,.4))}
 
 /* Glow stroke tracing the same curve as the clip-path, drawn as a sibling so its blur isn't clipped */
 .login2-wave-glow{position:absolute;top:0;right:0;bottom:0;width:50%;height:100%;z-index:3;pointer-events:none}
