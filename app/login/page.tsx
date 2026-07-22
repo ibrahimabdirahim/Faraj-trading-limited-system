@@ -52,6 +52,11 @@ export default async function LoginPage() {
         <div className="login2-hero-image" />
         <div className="login2-hero-overlay" />
         <div className="login2-right-content">
+          <div className="login2-hero-logo">
+            <img src="/faraj-logo.png" alt="Faraj Trading Limited" />
+          </div>
+
+          <div className="login2-hero-bottom">
           <div className="login2-badge"><Icon name="building" size={14} />Enterprise Business Platform</div>
           <h2>Run your entire operation from one platform.</h2>
           <p>Inventory, suppliers, finance, and reporting — unified for Faraj Trading Limited&apos;s branches and warehouse.</p>
@@ -60,6 +65,7 @@ export default async function LoginPage() {
               <li key={f.label}><span className="login2-feature-ico"><Icon name={f.icon} size={16} /></span>{f.label}</li>
             ))}
           </ul>
+          </div>
         </div>
       </div>
     </div>
