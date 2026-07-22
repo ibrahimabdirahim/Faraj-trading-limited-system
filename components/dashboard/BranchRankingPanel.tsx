@@ -61,6 +61,7 @@ export default function BranchRankingPanel({ rows }: { rows: BranchComparisonRow
                   <span>Performance</span>
                   <b style={{ color: scoreColor(r.performanceScore) }}>{r.performanceScore}/100</b>
                 </div>
+                <div className="rank-card-progress"><i style={{ width: `${r.performanceScore}%`, background: scoreColor(r.performanceScore) }} /></div>
               </button>
             ))}
           </div>
