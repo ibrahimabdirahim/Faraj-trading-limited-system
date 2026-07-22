@@ -30,6 +30,7 @@ const PATHS: Record<string, React.ReactNode> = {
   trophy: (<><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3" /></>),
   x: (<path d="M18 6 6 18M6 6l12 12" />),
   users: (<><path d="M17 21v-2a4 4 0 0 0-8 0v2M13 7a3 3 0 1 1-6 0 3 3 0 0 1 6 0" /></>),
+  user: (<><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>),
   logout: (<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" /></>),
   building: (<><path d="M3 21h18M5 21V7l7-4 7 4v14" /></>),
   edit: (<><path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></>),
