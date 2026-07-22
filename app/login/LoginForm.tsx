@@ -22,31 +22,31 @@ export default function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      {error && <div className="login-err">{error}</div>}
-      <div className="login-field">
+    <form onSubmit={handleSubmit} className="login2-form">
+      {error && <div className="login2-err">{error}</div>}
+      <div className="login2-field">
         <label htmlFor="identifier">Username or Email</label>
         <input id="identifier" name="identifier" type="text" autoComplete="username" placeholder="username or you@faraj.cd" value={identifier} onChange={(e) => setIdentifier(e.target.value)} required />
       </div>
-      <div className="login-field">
+      <div className="login2-field">
         <label htmlFor="password">Password</label>
-        <div className="login-field-input">
+        <div className="login2-field-input">
           <input id="password" name="password" type={showPassword ? "text" : "password"} autoComplete="current-password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
-          <button type="button" className="login-eye-btn" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword((s) => !s)}>
+          <button type="button" className="login2-eye-btn" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword((s) => !s)}>
             <Icon name={showPassword ? "eyeOff" : "eye"} size={16} />
           </button>
         </div>
       </div>
-      <div className="login-row">
-        <label className="login-remember">
+      <div className="login2-row">
+        <label className="login2-remember">
           <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
           Remember me
         </label>
-        <button type="button" className="login-forgot" onClick={() => setForgotOpen((v) => !v)}>Forgot password?</button>
+        <button type="button" className="login2-forgot" onClick={() => setForgotOpen((v) => !v)}>Forgot password?</button>
       </div>
-      {forgotOpen && <div className="login-notice">Password resets are handled by your administrator — ask them to reset it from User Management.</div>}
-      <button className="btn btn-primary" type="submit" disabled={pending} style={{ width: "100%", justifyContent: "center", padding: "11px" }}>
-        {pending ? "Signing in…" : <><Icon name="logout" size={16} />Sign in to Faraj OS</>}
+      {forgotOpen && <div className="login2-notice">Password resets are handled by your administrator — ask them to reset it from User Management.</div>}
+      <button className="login2-submit" type="submit" disabled={pending}>
+        {pending ? <><span className="login2-spinner" />Signing in…</> : <><Icon name="logout" size={16} />Sign in</>}
       </button>
     </form>
   );
