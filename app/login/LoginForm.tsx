@@ -22,20 +22,30 @@ export default function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="login2-form">
-      {error && <div className="login2-err">{error}</div>}
+    <form onSubmit={handleSubmit} className="login2-form" noValidate>
+      {error && <div className="login2-err" role="alert">{error}</div>}
       <div className="login2-field">
         <label htmlFor="identifier">Username or Email</label>
         <div className="login2-field-input">
-          <span className="login2-field-ico"><Icon name="user" size={16} /></span>
-          <input id="identifier" name="identifier" type="text" autoComplete="username" placeholder="Enter your username or email" value={identifier} onChange={(e) => setIdentifier(e.target.value)} required />
+          <span className="login2-field-ico" aria-hidden><Icon name="user" size={16} /></span>
+          <input
+            id="identifier" name="identifier" type="text" autoComplete="username"
+            placeholder="Enter your username or email" value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+            aria-invalid={!!error} required
+          />
         </div>
       </div>
       <div className="login2-field">
         <label htmlFor="password">Password</label>
         <div className="login2-field-input">
-          <span className="login2-field-ico"><Icon name="lock" size={16} /></span>
-          <input id="password" name="password" type={showPassword ? "text" : "password"} autoComplete="current-password" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <span className="login2-field-ico" aria-hidden><Icon name="lock" size={16} /></span>
+          <input
+            id="password" name="password" type={showPassword ? "text" : "password"} autoComplete="current-password"
+            placeholder="Enter your password" value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            aria-invalid={!!error} required
+          />
           <button type="button" className="login2-eye-btn" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword((s) => !s)}>
             <Icon name={showPassword ? "eyeOff" : "eye"} size={16} />
           </button>
@@ -46,14 +56,12 @@ export default function LoginForm() {
           <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
           Remember Me
         </label>
-        <button type="button" className="login2-forgot" onClick={() => setForgotOpen((v) => !v)}>Forgot Password?</button>
+        <button type="button" className="login2-forgot" aria-expanded={forgotOpen} onClick={() => setForgotOpen((v) => !v)}>Forgot Password?</button>
       </div>
       {forgotOpen && <div className="login2-notice">Password resets are handled by your administrator — ask them to reset it from User Management.</div>}
-      <button className="login2-submit" type="submit" disabled={pending}>
-        {pending ? <><span className="login2-spinner" />Signing in…</> : <><Icon name="lock" size={16} />Login</>}
+      <button className="login2-submit" type="submit" disabled={pending} aria-busy={pending}>
+        {pending ? <><span className="login2-spinner" aria-hidden />Signing in…</> : <><Icon name="lock" size={16} />Login</>}
       </button>
-      <div className="login2-divider">or</div>
-      <div className="login2-powered">Powered by <b>Faraj Trading Limited</b></div>
     </form>
   );
 }
