@@ -51,8 +51,7 @@ Additional docs: [`DATABASE_MIGRATION.md`](DATABASE_MIGRATION.md) ·
 - <a href="#data-model">Data Model</a>
 - <a href="#project-folder-structure">Project Folder Structure</a>
 - <a href="#api-overview">API Overview</a>
-- <a href="#backup">Backup</a>
-- <a href="#backup--recovery-details">Backup & Recovery — Details</a>
+- <a href="#backup--recovery">Backup &amp; Recovery</a>
 - <a href="#deployment">Deployment</a>
 - <a href="#deployment-architecture">Deployment Architecture</a>
 - <a href="#performance-optimizations">Performance Optimizations</a>
@@ -65,7 +64,7 @@ Additional docs: [`DATABASE_MIGRATION.md`](DATABASE_MIGRATION.md) ·
 ---
 
 <a id="overview"></a>
-## Overview
+## 🧭 Overview
 
 Faraj OS centralizes daily branch reporting, inventory, finance, and supplier
 management into a single system with:
@@ -102,7 +101,7 @@ management into a single system with:
 <p align="right"><a href="#toc">↑ back to top</a></p>
 
 <a id="key-features"></a>
-## Key Features
+## ✨ Key Features
 
 - **Daily Reports** — a guided wizard to record each branch's evening report (cash,
   stock received, expenses), with a pending → approved lifecycle, locking, and a Trash
@@ -149,7 +148,7 @@ flowchart LR
 <p align="right"><a href="#toc">↑ back to top</a></p>
 
 <a id="tech-stack"></a>
-## Tech Stack
+## 🛠️ Tech Stack
 
 - **Next.js 16** (App Router, React 19, TypeScript) — server components + server actions
 - **Prisma + PostgreSQL** — hosted on Render (or any Postgres provider)
@@ -191,13 +190,13 @@ flowchart LR
 <p align="right"><a href="#toc">↑ back to top</a></p>
 
 <a id="user-roles--permissions"></a>
-## User Roles & Permissions
+## 👥 User Roles & Permissions
 
 Access is controlled by role, with optional per-user overrides for finer-grained
 control:
 
 | Role | Typical Access |
-| --- | --- |
+|---|---|
 | **Super Administrator** | Full system access |
 | **General Administrator** | Full system access |
 | **Branch Manager** | Manage their assigned branch's daily reports; view-only elsewhere |
@@ -211,7 +210,7 @@ control:
 <a id="authentication--authorization"></a>
 ## 🔑 Authentication & Authorization
 
-1. **Login** — email/username + password checked against a bcrypt hash; failed attempts increment a counter and lock the account at 10 in a row
+1. **Login** — email/username + password checked against a bcrypt hash; failed attempts increment a counter and lock the account after 10 consecutive failures
 2. **Session creation** — a random token is generated and stored server-side in the `Session` table, with the browser holding only an `httpOnly` cookie referencing it
 3. **Every request** — the current user is resolved from the session, `active`/`locked` status is checked, and `lastActivityAt` is updated for idle-timeout tracking
 4. **Every page** — the user's **effective permissions** (their role's defaults merged with any per-user overrides) are resolved before rendering
@@ -235,7 +234,7 @@ Audit history is surfaced in two places: a system-wide feed under **Settings →
 <p align="right"><a href="#toc">↑ back to top</a></p>
 
 <a id="getting-started"></a>
-## Getting Started
+## 🏁 Getting Started
 
 ```bash
 npm install          # install dependencies
@@ -247,7 +246,7 @@ npm run dev          # start the dev server → http://localhost:3000
 <p align="right"><a href="#toc">↑ back to top</a></p>
 
 <a id="demo-login--initial-admin-setup"></a>
-## Demo Login / Initial Admin Setup
+## 🔓 Demo Login / Initial Admin Setup
 
 `npm run setup` seeds an administrator account using the `ADMIN_EMAIL` and
 `ADMIN_PASSWORD` environment variables — set these in your `.env` before running
@@ -295,10 +294,10 @@ Copy `.env.example` to `.env` and fill in real values:
 <p align="right"><a href="#toc">↑ back to top</a></p>
 
 <a id="useful-scripts"></a>
-## Useful Scripts
+## 📜 Useful Scripts
 
 | Script | What it does |
-| --- | --- |
+|---|---|
 | `npm run dev` | Start the development server |
 | `npm run build` | Production build |
 | `npm run start` | Run the production build |
@@ -312,7 +311,7 @@ Copy `.env.example` to `.env` and fill in real values:
 <p align="right"><a href="#toc">↑ back to top</a></p>
 
 <a id="system-modules"></a>
-## System Modules
+## 🧩 System Modules
 
 1. **Dashboard** — today's operations at a glance: cash collected, available cash,
    branch ranking, quick actions, and recent activity.
@@ -337,7 +336,7 @@ Copy `.env.example` to `.env` and fill in real values:
 <p align="right"><a href="#toc">↑ back to top</a></p>
 
 <a id="how-dual-currency-cdfusd-works"></a>
-## How Dual-Currency CDF/USD Works
+## 💱 How Dual-Currency CDF/USD Works
 
 CDF and USD are **always tracked separately** — never auto-mixed. A manual exchange
 rate (Settings → Currencies) is used only for *combined display estimates* on the
@@ -352,7 +351,7 @@ The dashboard also distinguishes two figures that are easy to confuse:
 <p align="right"><a href="#toc">↑ back to top</a></p>
 
 <a id="data-model"></a>
-## Data Model
+## 🗄️ Data Model
 
 See [`database/prisma/schema.prisma`](database/prisma/schema.prisma). Key tables:
 `User`, `Role`, `UserPermission`, `UserBranch`, `LoginAttempt`, `Session`, `Branch`,
@@ -438,25 +437,20 @@ Most data operations go through Server Actions, not REST endpoints. The followin
 
 <p align="right"><a href="#toc">↑ back to top</a></p>
 
-<a id="backup"></a>
-## Backup
+<a id="backup--recovery"></a>
+## 💾 Backup & Recovery
 
 The database runs on PostgreSQL. Use your host's automated backups (Render takes daily
-Postgres backups automatically) or run `pg_dump` on a schedule of your own.
+Postgres backups automatically) or run `pg_dump` against `DATABASE_URL` on a schedule of
+your own.
 
-<p align="right"><a href="#toc">↑ back to top</a></p>
-
-<a id="backup--recovery-details"></a>
-## 💾 Backup & Recovery — Details
-
-- Primary backup path: your PostgreSQL host's automated backups (Render provides these for managed Postgres instances)
-- Manual/on-demand backup: `pg_dump` against `DATABASE_URL`
-- Recovery: restore the `pg_dump` output (or host snapshot) into a fresh database and point `DATABASE_URL` at it
+**Recovery** — restore the `pg_dump` output (or a host snapshot) into a fresh database and
+point `DATABASE_URL` at it.
 
 <p align="right"><a href="#toc">↑ back to top</a></p>
 
 <a id="deployment"></a>
-## Deployment
+## ☁️ Deployment
 
 See [`RENDER_DEPLOYMENT.md`](RENDER_DEPLOYMENT.md) for the full Render setup guide. In
 short: provision a Render Postgres instance, set `DATABASE_URL`, `ADMIN_EMAIL`, and
@@ -497,13 +491,13 @@ flowchart TB
 
 - Sessions are stored in the database, not in-memory — the app can run multiple instances behind a load balancer without sticky sessions
 - The current single-Postgres-instance setup comfortably serves a multi-branch business at today's scale; as data volume grows, connection pooling (e.g. PgBouncer) and read replicas are the natural next steps, not architectural rewrites
-- Reports and exports are generated on-demand rather than pre-computed — fine at current volume, and a candidate for background jobs if export volume grows significantly
-- The module boundaries in `lib/` and `components/` make it straightforward to extract a module into its own service later, if a single Next.js deployment ever stops being sufficient
+- Reports and exports are generated on-demand rather than pre-computed — sufficient at current volume, and a candidate for background jobs if export volume grows significantly
+- The module boundaries in `lib/` and `components/` make it straightforward to extract a module into its own service later, should a single Next.js deployment no longer be sufficient
 
 <p align="right"><a href="#toc">↑ back to top</a></p>
 
 <a id="roadmap"></a>
-## Roadmap
+## 🗺️ Roadmap
 
 - Per-branch selling prices → exact profit (units sold × margin)
 - Per-branch data scoping (Branch Manager sees only their assigned branch's data)
